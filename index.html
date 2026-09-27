@@ -38,7 +38,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="tabs">
 <button class="on" onclick="tab('today',this)">Today</button>
 <button onclick="tab('add',this)">Add Food</button>
-<button onclick="tab('history',this)">📅 History</button>
+<button onclick="tab('history',this)">📅 History</button><button onclick="tab('trends',this)">📈 Trends</button>
 <button onclick="tab('custom',this)">My Foods</button>
 <button onclick="tab('meals',this)">My Meals</button>
 <button onclick="tab('settings',this)">Settings</button>
@@ -92,6 +92,29 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="card">
 <h3>Last 30 days</h3>
 <div id="historyTable"></div>
+</div>
+</section>
+
+
+<section id="trends" class="hidden">
+<div class="card">
+<h3>📈 Weekly & Monthly Progress</h3>
+<div class="small">See how your protein intake changes over time. Cumulative means the running total across the selected period.</div>
+<label>View</label>
+<select id="trendPeriod" onchange="renderTrends()">
+<option value="weekly">Last 8 weeks</option>
+<option value="monthly">Last 12 months</option>
+</select>
+</div>
+<div class="card">
+<h3 id="trendTitle">Weekly protein</h3>
+<div id="trendSummary" class="summary"></div>
+<div id="trendBars"></div>
+</div>
+<div class="card">
+<h3>Cumulative protein</h3>
+<div id="cumSummary" class="note"></div>
+<div id="cumRows"></div>
 </div>
 </section>
 
@@ -159,7 +182,7 @@ function tab(id,b){
  document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on")); b.classList.add("on");
  if(id==="today")renderToday();
  if(id==="add"){addDate.value=selectedDate;opts()}
- if(id==="history"){histDate.value=selectedDate;renderHistoryDay();renderHistorySummary()}
+ if(id==="history"){histDate.value=selectedDate;renderHistoryDay();renderHistorySummary()} if(id==="trends")renderTrends();
  if(id==="custom")customList();
  if(id==="meals")mealUI();
 }
@@ -174,7 +197,15 @@ function add(){
  getDay(d).push({meal:meal.value,name:f[0],q,p:f[1]*q/100,c:f[2]*q/100,f:f[3]*q/100,carb:f[4]*q/100,fiber:f[5]*q/100});
  save(); renderToday(); alert("Added to "+d);
 }
-function totals(a){return{p:a.reduce((s,x)=>s+x.p,0),c:a.reduce((s,x)=>s+x.c,0),f:a.reduce((s,x)=>s+x.f,0),carb:a.reduce((s,x)=>s+x.carb,0),fiber:a.reduce((s,x)=>s+(x.fiber||0),0)}}
+function totals(a){
+ return {
+  p:a.reduce((s,x)=>s+(+x.p||0),0),
+  c:a.reduce((s,x)=>s+(+x.c||0),0),
+  f:a.reduce((s,x)=>s+(+x.f||0),0),
+  carb:a.reduce((s,x)=>s+(+x.carb||0),0),
+  fiber:a.reduce((s,x)=>s+(+x.fiber||0),0)
+ }
+}
 function renderToday(){
  let a=getDay(todayKey()),t=totals(a);
  pt.textContent=t.p.toFixed(1)+" g";ct.textContent=Math.round(t.c)+" kcal";ptg.textContent="of "+S.p+" g";ctg.textContent="of "+S.c+" kcal";
@@ -202,12 +233,51 @@ function renderHistorySummary(){
  let rows=[];for(let i=0;i<30;i++){let dt=new Date();dt.setDate(dt.getDate()-i);let d=dt.toISOString().slice(0,10),t=totals(getDay(d));rows.push(`<div class=row><div><b>${d}</b><div class=small>${getDay(d).length?getDay(d).length+" items":"No entry"}</div></div><span class="${t.p>=S.p?'good':t.p?'bad':''}">${t.p.toFixed(1)} g P • ${Math.round(t.c)} kcal</span></div>`)}
  historyTable.innerHTML=rows.join("")
 }
+
+function dayKeyFromDate(dt){return dt.toISOString().slice(0,10)}
+function monthKey(dt){return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")}
+function monthLabel(key){let [y,m]=key.split("-");return new Date(+y,+m-1,1).toLocaleString("en-IN",{month:"short",year:"numeric"})}
+function weekStart(dt){let d=new Date(dt);let day=d.getDay();let diff=(day+6)%7;d.setDate(d.getDate()-diff);d.setHours(0,0,0,0);return d}
+function renderTrends(){
+ let mode=trendPeriod.value, periods=[];
+ if(mode==="weekly"){
+  for(let i=7;i>=0;i--){let d=new Date();d.setDate(d.getDate()-i*7);let ws=weekStart(d);let we=new Date(ws);we.setDate(we.getDate()+6);let p=0,c=0,days=0,hit=0;
+   for(let j=0;j<7;j++){let x=new Date(ws);x.setDate(x.getDate()+j);let a=getDay(dayKeyFromDate(x)),t=totals(a);p+=t.p;c+=t.c;if(t.p>0)days++;if(t.p>=S.p)hit++}
+   periods.push({label:ws.toLocaleDateString("en-IN",{day:"numeric",month:"short"}),p,c,days,hit})
+  }
+ }else{
+  for(let i=11;i>=0;i--){let d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);let y=d.getFullYear(),m=d.getMonth(),p=0,c=0,days=0,hit=0;
+   let last=new Date(y,m+1,0).getDate();
+   for(let j=1;j<=last;j++){let x=new Date(y,m,j),a=getDay(dayKeyFromDate(x)),t=totals(a);p+=t.p;c+=t.c;if(t.p>0)days++;if(t.p>=S.p)hit++}
+   periods.push({label:d.toLocaleDateString("en-IN",{month:"short",year:"numeric"}),p,c,days,hit})
+  }
+ }
+ let totalP=periods.reduce((s,x)=>s+x.p,0), totalC=periods.reduce((s,x)=>s+x.c,0), avgDay=periods.reduce((s,x)=>s+x.days,0);
+ let totalDays=mode==="weekly"?56:365;
+ let targetDays=periods.reduce((s,x)=>s+x.hit,0);
+ trendTitle.textContent=(mode==="weekly"?"Weekly":"Monthly")+" protein";
+ trendSummary.innerHTML=[
+  `<div class=stat><b>${totalP.toFixed(0)} g</b><span class=small>Cumulative protein</span></div>`,
+  `<div class=stat><b>${(totalP/Math.max(avgDay,1)).toFixed(1)} g</b><span class=small>Avg on logged days</span></div>`,
+  `<div class=stat><b>${targetDays}</b><span class=small>Days ≥ ${S.p} g</span></div>`,
+  `<div class=stat><b>${Math.round(totalC)}</b><span class=small>Cumulative kcal</span></div>`
+ ].join("");
+ trendBars.innerHTML=periods.map(x=>{
+   let avg=x.days?x.p/x.days:0;
+   let pct=Math.min(100,avg/S.p*100);
+   return `<div class=row><div><b>${x.label}</b><div class=small>${x.days} logged days • ${x.hit} target days</div></div><div style="min-width:48%;text-align:right"><b>${x.p.toFixed(0)} g</b><div class=bar><div class=fill style="width:${pct}%"></div></div><div class=small>${avg.toFixed(1)} g/day logged</div></div></div>`
+ }).join("");
+ let running=0;
+ cumRows.innerHTML=periods.map(x=>{running+=x.p;return `<div class=row><div><b>${x.label}</b><div class=small>Period protein: ${x.p.toFixed(0)} g</div></div><span class=protein>${running.toFixed(0)} g cumulative</span></div>`}).join("");
+ cumSummary.innerHTML=`Across the selected ${mode==="weekly"?"8-week":"12-month"} period, you've logged <b>${totalP.toFixed(0)} g</b> protein and <b>${Math.round(totalC)} kcal</b>. The cumulative number is the running total of your logged entries; missed days can be backfilled later.`;
+}
+
 function saveFood(){
  let n=cn.value.trim(),q=+cq.value,p=+cp.value,k=+ck.value,f=+cf.value||0,ch=+ch.value||0,fi=+cfi.value||0;
  if(!n||!q||!p||!k){alert("Enter name, reference amount, protein and calories.");return}
  S.custom.push([n,p*100/q,k*100/q,f*100/q,ch*100/q,fi*100/q]);save();cn.value="";customList();alert("Added to My Foods")
 }
-function customList(){document.getElementById("customList").innerHTML=S.custom.length?S.custom.map((x,i)=>`<div class=row><div><b>${x[0]}</b><div class=small>${x[1].toFixed(1)}g protein • ${Math.round(x[2])} kcal /100g</div></div><button class=danger onclick='S.custom.splice(${i},1);save();customList()'>Delete</button></div>`).join(""):"<div class=small>No custom foods yet.</div>"}
+function customList(){document.getElementById("customList").innerHTML=S.custom.length?S.custom.map((x,i)=>`<div class=row><div><b>${x[0]}</b><div class=small>${x[1].toFixed(1)}g protein • ${Math.round(x[2])} kcal • ${x[5]?x[5].toFixed(1):"0"}g fibre /100g</div></div><button class=danger onclick='S.custom.splice(${i},1);save();customList()'>Delete</button></div>`).join(""):"<div class=small>No custom foods yet.</div>"}
 function mealUI(){mfoods.innerHTML=arr().map((x,i)=>`<option value=${i}>${x[0]}</option>`).join("");mealList.innerHTML=Object.keys(S.meals).map(n=>`<div class=row><b>${n}</b><button class=primary onclick="addMeal('${n.replaceAll("'","\\\\'")}')">Add</button></div>`).join("")||"<div class=small>No saved meals yet.</div>"}
 function saveMeal(){let n=mn.value.trim(),ids=[...mfoods.selectedOptions].map(o=>+o.value),m=+mult.value||1;if(!n||!ids.length)return alert("Enter a name and choose foods.");S.meals[n]={ids,m};save();mealUI();alert("Saved meal")}
 function addMeal(n){let m=S.meals[n];m.ids.forEach(i=>{let f=arr()[i],q=100*m.m;getDay(todayKey()).push({meal:n,name:f[0],q,p:f[1]*q/100,c:f[2]*q/100,f:f[3]*q/100,carb:f[4]*q/100,fiber:f[5]*q/100})});save();renderToday()}
