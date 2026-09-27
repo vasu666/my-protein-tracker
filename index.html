@@ -1,36 +1,218 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#17365d"><link rel="manifest" href="manifest.json"><title>My Protein Tracker</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#17365d">
+<link rel="manifest" href="manifest.json">
+<title>My Protein Tracker</title>
 <style>
-body{margin:0;background:#f3f6fa;font-family:Arial;color:#172033}header{background:#17365d;color:white;padding:20px}h1{margin:0}.wrap{max-width:850px;margin:auto;padding:12px}.tabs{display:flex;gap:6px;overflow:auto;margin-bottom:12px}.tabs button{border:0;border-radius:20px;padding:10px 13px}.on{background:#17365d;color:white}.card{background:white;border-radius:15px;padding:15px;margin-bottom:12px;box-shadow:0 2px 8px #0001}.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.stat{text-align:center;background:#f7f9fc;padding:10px;border-radius:10px}.stat b{display:block;font-size:18px}input,select{width:100%;padding:10px;border:1px solid #ccd3dd;border-radius:9px;box-sizing:border-box}label{font-size:12px;color:#667085;display:block;margin:8px 0 4px}.primary{background:#2f75b5;color:white;border:0;border-radius:9px;padding:11px 14px;margin-top:10px}.danger{background:#fff0f0;color:#b42318;border:0;border-radius:7px;padding:6px}.row{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid #eee}.meal{font-weight:bold;color:#17365d;margin-top:10px}.p{color:#159447;font-weight:bold}.small{font-size:12px;color:#667085}.bar{height:9px;background:#e7ecf3;border-radius:9px;margin-top:7px}.fill{height:100%;background:#159447;border-radius:9px;width:0}.hidden{display:none}@media(max-width:600px){.stats{grid-template-columns:1fr 1fr}}
-</style></head><body>
-<header><h1>🥗 My Protein Tracker</h1><div>Indian vegetarian + eggs + whey • 100 g protein target</div></header>
-<div class="wrap"><div class="tabs"><button class="on" onclick="show('today',this)">Today</button><button onclick="show('add',this)">Add Food</button><button onclick="show('custom',this)">My Foods</button><button onclick="show('meals',this)">My Meals</button><button onclick="show('settings',this)">Settings</button></div>
-<section id="today"><div class="card"><div class="grid"><div><span class="small">Protein</span><h2 id="pt">0 g</h2><div class="bar"><div id="pb" class="fill"></div></div><span class="small" id="ptg"></span></div><div><span class="small">Calories</span><h2 id="ct">0 kcal</h2><div class="bar"><div id="cb" class="fill"></div></div><span class="small" id="ctg"></span></div></div><div class="stats"><div class="stat"><b id="fat">0</b><span class="small">Fat g</span></div><div class="stat"><b id="carb">0</b><span class="small">Carbs g</span></div><div class="stat"><b id="fib">0</b><span class="small">Fibre g</span></div><div class="stat"><b id="items">0</b><span class="small">Items</span></div></div></div><div class="card" id="list"></div></section>
-
-<section id="add" class="hidden"><div class="card"><h3>Add Food</h3><label>Meal</label><select id="meal"><option>Breakfast</option><option>Mid-Morning</option><option>Lunch</option><option>Evening Snack</option><option>Post-Workout</option><option>Dinner</option></select><label>Search</label><input id="search" oninput="opts()" placeholder="paneer, yogurt, burrito bowl..."><label>Food</label><select id="food" onchange="prev()"></select><label>Amount (g/ml)</label><input id="qty" type="number" value="100" oninput="prev()"><div class="small" id="preview"></div><button class="primary" onclick="add()">+ Add to today</button></div></section>
-
-<section id="custom" class="hidden"><div class="card"><h3>➕ Add your own food</h3><div class="small">You can add any food, restaurant meal, yogurt, whey brand or recipe. Enter nutrition for the reference amount shown on the label/menu; the app converts it to per-100-g values automatically.</div><label>Food name</label><input id="cn" placeholder="Burrito bowl - my usual"><label>Reference amount (g/ml)</label><input id="cq" type="number" value="100"><div class="grid"><div><label>Protein (g)</label><input id="cp" type="number" step=".1"></div><div><label>Calories</label><input id="ck" type="number"></div><div><label>Fat (g)</label><input id="cf" type="number" value="0"></div><div><label>Carbs (g)</label><input id="ch" type="number" value="0"></div></div><button class="primary" onclick="saveFood()">Save to my food database</button></div><div class="card"><h3>My Foods</h3><div id="customList"></div></div></section>
-
-<section id="meals" class="hidden"><div class="card"><h3>Saved Meals</h3><div id="mealList"></div><hr><label>Meal name</label><input id="mn" placeholder="My Breakfast"><label>Choose foods</label><select id="mfoods" multiple size="8"></select><label>Multiplier</label><input id="mult" type="number" value="1" step=".1"><button class="primary" onclick="saveMeal()">Save meal</button></div></section>
-
-<section id="settings" class="hidden"><div class="card"><h3>Targets</h3><label>Protein target g/day</label><input id="sp" type="number" value="100"><label>Calories target/day</label><input id="sc" type="number" value="1900"><button class="primary" onclick="saveSettings()">Save</button></div><div class="card"><h3>Backup</h3><button class="primary" onclick="backup()">Download backup</button></div></section>
+:root{--b:#17365d;--b2:#2f75b5;--g:#159447;--bg:#f3f6fa;--muted:#667085;--line:#e4e7ec}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:#172033}
+header{background:linear-gradient(135deg,#17365d,#2f75b5);color:#fff;padding:20px 16px;position:sticky;top:0;z-index:5}
+h1{margin:0;font-size:24px}.sub{font-size:12px;opacity:.9;margin-top:4px}.wrap{max-width:900px;margin:auto;padding:12px}
+.tabs{display:flex;gap:7px;overflow:auto;margin-bottom:12px}.tabs button{border:0;background:#e7edf5;padding:10px 13px;border-radius:20px;white-space:nowrap}.tabs .on{background:var(--b);color:#fff}
+.card{background:#fff;border-radius:16px;padding:15px;margin-bottom:12px;box-shadow:0 2px 9px #17203312}
+.dash{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:#f7f9fc;border-radius:13px;padding:12px}.metric b{font-size:22px}
+.bar{height:10px;background:#e7ecf3;border-radius:10px;overflow:hidden;margin-top:8px}.fill{height:100%;background:var(--g);width:0;border-radius:10px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.stat{background:#f8fafc;padding:10px;border-radius:12px;text-align:center}.stat b{display:block;font-size:18px}
+.small{font-size:12px;color:var(--muted)}.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.row:last-child{border:0}
+.meal{font-weight:bold;color:var(--b);margin-top:10px}.protein{color:var(--g);font-weight:bold}
+input,select{width:100%;padding:11px;border:1px solid #d0d5dd;border-radius:10px;background:#fff;font-size:15px}
+label{display:block;color:var(--muted);font-size:12px;margin:9px 0 5px}.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.primary{background:var(--b2);color:#fff;border:0;border-radius:10px;padding:11px 15px;font-weight:bold;margin-top:10px}
+.secondary{background:#eef3f8;color:var(--b);border:0;border-radius:10px;padding:10px 13px;font-weight:bold}
+.danger{background:#fff0f0;color:#b42318;border:0;border-radius:8px;padding:7px 10px}.hidden{display:none}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}.quick button{border:1px solid var(--line);background:#fff;padding:11px;border-radius:11px;text-align:left}
+.datebar{display:flex;gap:8px;align-items:end}.datebar>div{flex:1}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.summary .stat{padding:12px}
+.good{color:#15753b}.bad{color:#b42318}.note{background:#f7f9fc;border-radius:10px;padding:10px;margin-top:8px}
+canvas{width:100%;height:220px;background:#fbfcfe;border-radius:12px}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
+@media(max-width:600px){.stats,.summary{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}.dash{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header><h1>🥗 My Protein Tracker</h1><div class="sub">Indian vegetarian + eggs + whey • daily history tracker</div></header>
+<div class="wrap">
+<div class="tabs">
+<button class="on" onclick="tab('today',this)">Today</button>
+<button onclick="tab('add',this)">Add Food</button>
+<button onclick="tab('history',this)">📅 History</button>
+<button onclick="tab('custom',this)">My Foods</button>
+<button onclick="tab('meals',this)">My Meals</button>
+<button onclick="tab('settings',this)">Settings</button>
 </div>
+
+<section id="today">
+<div class="card">
+<div class="dash">
+<div class="metric"><div class="small">Protein</div><b id="pt">0 g</b><div class="bar"><div id="pb" class="fill"></div></div><div class="small" id="ptg"></div></div>
+<div class="metric"><div class="small">Calories</div><b id="ct">0 kcal</b><div class="bar"><div id="cb" class="fill"></div></div><div class="small" id="ctg"></div></div>
+</div>
+<div class="stats">
+<div class="stat"><b id="fat">0</b><span class="small">Fat g</span></div>
+<div class="stat"><b id="carb">0</b><span class="small">Carbs g</span></div>
+<div class="stat"><b id="fib">0</b><span class="small">Fibre g</span></div>
+<div class="stat"><b id="items">0</b><span class="small">Items</span></div>
+</div>
+</div>
+<div class="card" id="todayList"></div>
+</section>
+
+<section id="add" class="hidden">
+<div class="card"><h3>Add Food</h3>
+<label>Date</label><input id="addDate" type="date" onchange="setDateFromAdd()">
+<div class="small">You can select a past date to backfill a missed day.</div>
+<label>Meal</label><select id="meal"><option>Breakfast</option><option>Mid-Morning</option><option>Lunch</option><option>Evening Snack</option><option>Post-Workout</option><option>Dinner</option></select>
+<label>Search food</label><input id="search" oninput="opts()" placeholder="paneer, yogurt, burrito bowl...">
+<label>Food</label><select id="food" onchange="prev()"></select>
+<label>Amount (g/ml)</label><input id="qty" type="number" value="100" oninput="prev()">
+<div class="small" id="preview"></div>
+<button class="primary" onclick="add()">+ Add to selected date</button>
+</div>
+</section>
+
+<section id="history" class="hidden">
+<div class="card">
+<h3>📅 History</h3>
+<div class="datebar"><div><label>Choose date</label><input id="histDate" type="date" onchange="renderHistoryDay()"></div></div>
+<div id="historyDay"></div>
+</div>
+<div class="card">
+<h3>Weekly summary</h3>
+<div class="summary">
+<div class="stat"><b id="weekAvg">0</b><span class="small">Avg protein g/day</span></div>
+<div class="stat"><b id="hitDays">0</b><span class="small">Days ≥ target</span></div>
+<div class="stat"><b id="weekHigh">0</b><span class="small">Highest g</span></div>
+<div class="stat"><b id="weekLow">0</b><span class="small">Lowest g</span></div>
+</div>
+<div class="note small">Days with no entry are shown as 0 g. You can backfill them anytime using Add Food → Date.</div>
+</div>
+<div class="card">
+<h3>Last 30 days</h3>
+<div id="historyTable"></div>
+</div>
+</section>
+
+<section id="custom" class="hidden">
+<div class="card"><h3>➕ Add your own food</h3>
+<div class="small">Add your yogurt, restaurant burrito bowl, exact whey brand, protein bar or homemade recipe. Enter nutrition for the reference amount; the app converts it to per-100-g values.</div>
+<label>Food name</label><input id="cn" placeholder="Burrito bowl - my usual">
+<label>Reference amount (g/ml)</label><input id="cq" type="number" value="100">
+<div class="grid">
+<div><label>Protein (g)</label><input id="cp" type="number" step=".1"></div>
+<div><label>Calories</label><input id="ck" type="number"></div>
+<div><label>Fat (g)</label><input id="cf" type="number" step=".1" value="0"></div>
+<div><label>Carbs (g)</label><input id="ch" type="number" step=".1" value="0"></div>
+<div><label>Fibre (g)</label><input id="cfi" type="number" step=".1" value="0"></div>
+</div>
+<button class="primary" onclick="saveFood()">Save to My Foods</button></div>
+<div class="card"><h3>My Food Database</h3><div id="customList"></div></div>
+</section>
+
+<section id="meals" class="hidden">
+<div class="card"><h3>Saved Meals</h3><div id="mealList"></div><hr>
+<label>Meal name</label><input id="mn" placeholder="My Breakfast">
+<label>Choose foods</label><select id="mfoods" multiple size="8"></select>
+<label>Multiplier</label><input id="mult" type="number" value="1" step=".1">
+<button class="primary" onclick="saveMeal()">Save meal</button></div>
+</section>
+
+<section id="settings" class="hidden">
+<div class="card"><h3>Targets</h3><label>Protein target g/day</label><input id="sp" type="number">
+<label>Calories target/day</label><input id="sc" type="number">
+<button class="primary" onclick="saveSettings()">Save</button></div>
+<div class="card"><h3>Backup</h3><button class="secondary" onclick="backup()">Download backup</button></div>
+</section>
+<footer>History is stored by date on this device. Backup regularly if you want protection against browser/app data being cleared.</footer>
+</div>
+
 <script>
-const B=[["Egg, whole",12.6,143,9.5,1.1],["Egg white",10.9,52,.2,.7],["Toned milk",3.1,60,3.3,4.8],["Greek/high-protein curd",9.5,70,3,4],["Curd/yogurt",3.5,60,3,4.7],["Paneer",18,265,20,4],["Low-fat paneer",22,180,10,5],["Tofu",15,145,9,3],["Whey protein",75,400,6,10],["Soy chunks (dry)",52,345,.5,33],["Soy chunks (cooked)",17,160,1,12],["Black chana (cooked)",8.6,164,2.6,27.4],["White chana (cooked)",8.9,164,2.6,27.4],["Green moong (cooked)",7,105,.4,18.7],["Rajma (cooked)",8.7,127,.5,22.8],["Chana dal (cooked)",8.9,164,2.6,27.4],["Toor dal (cooked)",9,162,1,27.1],["Masoor dal (cooked)",9,116,.4,20.1],["Moong dal (cooked)",7,105,.4,19],["Urad dal (cooked)",7,116,.5,20],["Roasted chana",18,360,5,60],["Peanuts",25.8,567,49.2,16.1],["Almonds",21.2,579,49.9,21.6],["Pumpkin seeds",30.2,559,49,10.7],["Chia seeds",16.5,486,30.7,42.1],["Oats",12.5,389,6.9,66.3],["Muesli",11,380,6,68],["Quinoa (cooked)",4.4,120,1.9,21.3],["Brown rice (cooked)",2.6,123,1,25.6],["White rice (cooked)",2.7,130,.3,28.2],["Chapati",9,297,4,50],["Idli",6,145,1,30],["Dosa",5.5,170,3.5,28],["Poha",2.5,110,3,18],["Broccoli",2.4,35,.4,7.2],["Spinach",2.9,23,.4,3.8],["Mushroom",3.1,28,.5,5],["Sweet corn",3.4,96,1.5,21],["Avocado",2,160,14.7,8.5],["Banana",1.1,89,.3,22.8],["Apple",.3,52,.2,13.8],["Orange",.9,47,.1,11.8],["Dates",1.5,282,.2,75]];
+const B=[
+["Egg, whole",12.6,143,9.5,1.1,0],["Egg white",10.9,52,.2,.7,0],["Toned milk",3.1,60,3.3,4.8,0],
+["Greek/high-protein curd",9.5,70,3,4,0],["Curd/yogurt",3.5,60,3,4.7,0],["Buttermilk",1.5,35,1.5,4,0],
+["Paneer",18,265,20,4,0],["Low-fat paneer",22,180,10,5,0],["Tofu",15,145,9,3,.5],["Whey protein",75,400,6,10,0],
+["Soy chunks (dry)",52,345,.5,33,8],["Soy chunks (cooked)",17,160,1,12,8],["Black chana (cooked)",8.6,164,2.6,27.4,7.6],
+["White chana (cooked)",8.9,164,2.6,27.4,7.6],["Green moong (cooked)",7,105,.4,18.7,7.6],["Rajma (cooked)",8.7,127,.5,22.8,6.4],
+["Chana dal (cooked)",8.9,164,2.6,27.4,7.6],["Toor dal (cooked)",9,162,1,27.1,7.8],["Masoor dal (cooked)",9,116,.4,20.1,7.9],
+["Moong dal (cooked)",7,105,.4,19,7],["Urad dal (cooked)",7,116,.5,20,7],["Roasted chana",18,360,5,60,10],
+["Peanuts",25.8,567,49.2,16.1,8.5],["Almonds",21.2,579,49.9,21.6,12.5],["Pumpkin seeds",30.2,559,49,10.7,6],
+["Chia seeds",16.5,486,30.7,42.1,34.4],["Oats",12.5,389,6.9,66.3,10.1],["Muesli",11,380,6,68,7],
+["Quinoa (cooked)",4.4,120,1.9,21.3,2.8],["Brown rice (cooked)",2.6,123,1,25.6,1.6],["White rice (cooked)",2.7,130,.3,28.2,.4],
+["Chapati",9,297,4,50,11],["Idli",6,145,1,30,2],["Dosa",5.5,170,3.5,28,1],["Poha",2.5,110,3,18,2],
+["Broccoli",2.4,35,.4,7.2,3.3],["Spinach",2.9,23,.4,3.8,2.4],["Mushroom",3.1,28,.5,5,1.5],
+["Sweet corn",3.4,96,1.5,21,2.4],["Avocado",2,160,14.7,8.5,6.7],["Banana",1.1,89,.3,22.8,2.6],
+["Apple",.3,52,.2,13.8,2.4],["Orange",.9,47,.1,11.8,2.4],["Dates",1.5,282,.2,75,8]
+];
+
 let S=JSON.parse(localStorage.getItem("myPT")||'{"p":100,"c":1900,"days":{},"custom":[],"meals":{}}');
-const key=()=>new Date().toISOString().slice(0,10), arr=()=>B.concat(S.custom), today=()=>S.days[key()]||(S.days[key()]=[]), save=()=>localStorage.setItem("myPT",JSON.stringify(S));
-function show(id,b){document.querySelectorAll("section").forEach(x=>x.classList.add("hidden"));document.getElementById(id).classList.remove("hidden");document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));b.classList.add("on");if(id=="today")render();if(id=="add")opts();if(id=="custom")customList();if(id=="meals")mealUI()}
-function opts(){let q=(search.value||"").toLowerCase(),s=food;s.innerHTML="";arr().forEach((x,i)=>{if(x[0].toLowerCase().includes(q)){let o=document.createElement("option");o.value=i;o.text=x[0];s.add(o)}});prev()}
+const todayKey=()=>new Date().toISOString().slice(0,10);
+const getDay=(d)=>S.days[d]||(S.days[d]=[]);
+const arr=()=>B.concat(S.custom);
+const save=()=>localStorage.setItem("myPT",JSON.stringify(S));
+let selectedDate=todayKey();
+
+function tab(id,b){
+ document.querySelectorAll("section").forEach(x=>x.classList.add("hidden"));
+ document.getElementById(id).classList.remove("hidden");
+ document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+ if(id==="today")renderToday();
+ if(id==="add"){addDate.value=selectedDate;opts()}
+ if(id==="history"){histDate.value=selectedDate;renderHistoryDay();renderHistorySummary()}
+ if(id==="custom")customList();
+ if(id==="meals")mealUI();
+}
+function setDateFromAdd(){selectedDate=addDate.value||todayKey()}
+function opts(){
+ let q=(search.value||"").toLowerCase(), s=food; s.innerHTML="";
+ arr().forEach((x,i)=>{if(x[0].toLowerCase().includes(q)){let o=document.createElement("option");o.value=i;o.text=x[0];s.add(o)}});prev()
+}
 function prev(){let f=arr()[+food.value||0],q=+qty.value||0;preview.textContent=(f[1]*q/100).toFixed(1)+" g protein • "+Math.round(f[2]*q/100)+" kcal"}
-function add(){let f=arr()[+food.value],q=+qty.value||0;if(!q)return;today().push({meal:meal.value,name:f[0],q,p:f[1]*q/100,c:f[2]*q/100,f:f[3]*q/100,carb:f[4]*q/100});save();render()}
-function render(){let a=today(),p=a.reduce((s,x)=>s+x.p,0),c=a.reduce((s,x)=>s+x.c,0);pt.textContent=p.toFixed(1)+" g";ct.textContent=Math.round(c)+" kcal";ptg.textContent="of "+S.p+" g";ctg.textContent="of "+S.c+" kcal";pb.style.width=Math.min(100,p/S.p*100)+"%";cb.style.width=Math.min(100,c/S.c*100)+"%";fat.textContent=a.reduce((s,x)=>s+x.f,0).toFixed(1);carb.textContent=a.reduce((s,x)=>s+x.carb,0).toFixed(1);items.textContent=a.length;list.innerHTML="<h3>Today's food</h3>"+(a.length?a.map((x,i)=>`<div class=row><div><b>${x.name}</b><div class=small>${x.meal} • ${x.q} g/ml</div></div><div><span class=p>${x.p.toFixed(1)}g P</span> <button class=danger onclick='del(${i})'>×</button></div></div>`).join(""):"<div class=small>No food added yet.</div>")}
-function del(i){today().splice(i,1);save();render()}
-function saveFood(){let n=cn.value.trim(),q=+cq.value,p=+cp.value,k=+ck.value,f=+cf.value||0,h=+ch.value||0;if(!n||!q||!p||!k){alert("Enter name, reference amount, protein and calories.");return}S.custom.push([n,p*100/q,k*100/q,f*100/q,h*100/q]);save();cn.value="";customList();alert("Added to My Foods")}
+function add(){
+ let f=arr()[+food.value],q=+qty.value||0,d=selectedDate||todayKey(); if(!q||!f)return;
+ getDay(d).push({meal:meal.value,name:f[0],q,p:f[1]*q/100,c:f[2]*q/100,f:f[3]*q/100,carb:f[4]*q/100,fiber:f[5]*q/100});
+ save(); renderToday(); alert("Added to "+d);
+}
+function totals(a){return{p:a.reduce((s,x)=>s+x.p,0),c:a.reduce((s,x)=>s+x.c,0),f:a.reduce((s,x)=>s+x.f,0),carb:a.reduce((s,x)=>s+x.carb,0),fiber:a.reduce((s,x)=>s+(x.fiber||0),0)}}
+function renderToday(){
+ let a=getDay(todayKey()),t=totals(a);
+ pt.textContent=t.p.toFixed(1)+" g";ct.textContent=Math.round(t.c)+" kcal";ptg.textContent="of "+S.p+" g";ctg.textContent="of "+S.c+" kcal";
+ pb.style.width=Math.min(100,t.p/S.p*100)+"%";cb.style.width=Math.min(100,t.c/S.c*100)+"%";
+ fat.textContent=t.f.toFixed(1);carb.textContent=t.carb.toFixed(1);fib.textContent=t.fiber.toFixed(1);items.textContent=a.length;
+ todayList.innerHTML="<h3>Today's food</h3>"+(a.length?a.map((x,i)=>`<div class=row><div><b>${x.name}</b><div class=small>${x.meal} • ${x.q} g/ml</div></div><div><span class=protein>${x.p.toFixed(1)}g P</span> <button class=danger onclick='delToday(${i})'>×</button></div></div>`).join(""):"<div class=small>No food added yet.</div>")
+}
+function delToday(i){getDay(todayKey()).splice(i,1);save();renderToday()}
+function renderHistoryDay(){
+ let d=histDate.value||todayKey(),a=getDay(d),t=totals(a), target=S.p;
+ historyDay.innerHTML=`<h4>${d}</h4><div class=summary>
+ <div class=stat><b>${t.p.toFixed(1)} g</b><span class=small>Protein</span></div>
+ <div class=stat><b>${Math.round(t.c)}</b><span class=small>Calories</span></div>
+ <div class=stat><b class="${t.p>=target?'good':'bad'}">${t.p>=target?'✓ Target hit':'Below target'}</b><span class=small>Protein target</span></div>
+ <div class=stat><b>${a.length}</b><span class=small>Food items</span></div></div>`;
+ if(a.length){
+  historyDay.innerHTML+=a.map((x,i)=>`<div class=row><div><b>${x.name}</b><div class=small>${x.meal} • ${x.q} g/ml</div></div><div><span class=protein>${x.p.toFixed(1)}g P</span> <button class=danger onclick='delHistory(${i},"${d}")'>×</button></div></div>`).join("");
+ }else historyDay.innerHTML+="<div class=note small>No entries for this date. You can backfill it from Add Food by selecting this date.</div>";
+}
+function delHistory(i,d){getDay(d).splice(i,1);save();renderHistoryDay();renderHistorySummary()}
+function renderHistorySummary(){
+ let vals=[],days=0,hit=0;
+ for(let i=6;i>=0;i--){let dt=new Date();dt.setDate(dt.getDate()-i);let d=dt.toISOString().slice(0,10),p=totals(getDay(d)).p;vals.push(p);if(p>0)days++;if(p>=S.p)hit++}
+ weekAvg.textContent=(vals.reduce((a,b)=>a+b,0)/7).toFixed(1);hitDays.textContent=hit;weekHigh.textContent=Math.max(...vals).toFixed(1);weekLow.textContent=Math.min(...vals).toFixed(1);
+ let rows=[];for(let i=0;i<30;i++){let dt=new Date();dt.setDate(dt.getDate()-i);let d=dt.toISOString().slice(0,10),t=totals(getDay(d));rows.push(`<div class=row><div><b>${d}</b><div class=small>${getDay(d).length?getDay(d).length+" items":"No entry"}</div></div><span class="${t.p>=S.p?'good':t.p?'bad':''}">${t.p.toFixed(1)} g P • ${Math.round(t.c)} kcal</span></div>`)}
+ historyTable.innerHTML=rows.join("")
+}
+function saveFood(){
+ let n=cn.value.trim(),q=+cq.value,p=+cp.value,k=+ck.value,f=+cf.value||0,ch=+ch.value||0,fi=+cfi.value||0;
+ if(!n||!q||!p||!k){alert("Enter name, reference amount, protein and calories.");return}
+ S.custom.push([n,p*100/q,k*100/q,f*100/q,ch*100/q,fi*100/q]);save();cn.value="";customList();alert("Added to My Foods")
+}
 function customList(){document.getElementById("customList").innerHTML=S.custom.length?S.custom.map((x,i)=>`<div class=row><div><b>${x[0]}</b><div class=small>${x[1].toFixed(1)}g protein • ${Math.round(x[2])} kcal /100g</div></div><button class=danger onclick='S.custom.splice(${i},1);save();customList()'>Delete</button></div>`).join(""):"<div class=small>No custom foods yet.</div>"}
-function mealUI(){mfoods.innerHTML=arr().map((x,i)=>`<option value=${i}>${x[0]}</option>`).join("");mealList.innerHTML=Object.keys(S.meals).map(n=>`<div class=row><b>${n}</b><button class=primary onclick="addMeal('${n.replaceAll("'","\\'")}')">Add</button></div>`).join("")||"<div class=small>No saved meals yet.</div>"}
+function mealUI(){mfoods.innerHTML=arr().map((x,i)=>`<option value=${i}>${x[0]}</option>`).join("");mealList.innerHTML=Object.keys(S.meals).map(n=>`<div class=row><b>${n}</b><button class=primary onclick="addMeal('${n.replaceAll("'","\\\\'")}')">Add</button></div>`).join("")||"<div class=small>No saved meals yet.</div>"}
 function saveMeal(){let n=mn.value.trim(),ids=[...mfoods.selectedOptions].map(o=>+o.value),m=+mult.value||1;if(!n||!ids.length)return alert("Enter a name and choose foods.");S.meals[n]={ids,m};save();mealUI();alert("Saved meal")}
-function addMeal(n){let m=S.meals[n];m.ids.forEach(i=>{let f=arr()[i],q=100*m.m;today().push({meal:n,name:f[0],q,p:f[1]*q/100,c:f[2]*q/100,f:f[3]*q/100,carb:f[4]*q/100})});save();render()}
-function saveSettings(){S.p=+sp.value||100;S.c=+sc.value||1900;save();render();alert("Saved")}
+function addMeal(n){let m=S.meals[n];m.ids.forEach(i=>{let f=arr()[i],q=100*m.m;getDay(todayKey()).push({meal:n,name:f[0],q,p:f[1]*q/100,c:f[2]*q/100,f:f[3]*q/100,carb:f[4]*q/100,fiber:f[5]*q/100})});save();renderToday()}
+function saveSettings(){S.p=+sp.value||100;S.c=+sc.value||1900;save();renderToday();alert("Saved")}
 function backup(){let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="my-protein-tracker-backup.json";a.click()}
-sp.value=S.p;sc.value=S.c;opts();render();
-if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");
-</script></body></html>
+sp.value=S.p;sc.value=S.c;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
+</script>
+</body></html>
