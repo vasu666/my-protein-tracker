@@ -33,7 +33,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 </style>
 </head>
 <body>
-<header><h1>🥗 My Protein Tracker</h1><div class="sub">Indian vegetarian + eggs + whey • daily history tracker</div></header>
+<header><h1>🥗 My Protein Tracker</h1><div class="sub">Indian foods + eggs + whey + non-veg • daily history tracker</div></header>
 <div class="wrap">
 <div class="tabs">
 <button class="on" onclick="tab('today',this)">Today</button>
@@ -63,12 +63,12 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <section id="add" class="hidden">
 <div class="card"><h3>Add Food</h3>
 <label>Date</label><input id="addDate" type="date" onchange="setDateFromAdd()">
-<div class="small">You can select a past date to backfill a missed day.</div>
+<div class="small">You can select a past date to backfill a missed day. Household measures are approximate unless the food has a defined serving size.</div>
 <label>Meal</label><select id="meal"><option>Breakfast</option><option>Mid-Morning</option><option>Lunch</option><option>Evening Snack</option><option>Post-Workout</option><option>Dinner</option></select>
 <label>Search food</label><input id="search" oninput="opts()" placeholder="paneer, yogurt, burrito bowl...">
 <label>Food</label><select id="food" onchange="prev()"></select>
-<label>Amount (g/ml)</label><input id="qty" type="number" value="100" oninput="prev()">
-<div class="small" id="preview"></div>
+<label>Amount</label><div class="grid"><input id="qty" type="number" value="100" oninput="prev()"><select id="unit" onchange="prev()"><option value="g">g</option><option value="ml">ml</option><option value="tsp">teaspoon</option><option value="tbsp">tablespoon</option><option value="piece">piece</option><option value="bowl">bowl</option><option value="cup">cup</option><option value="serving">serving</option></select></div>
+<div class="small" id="unitHint"></div><div class="small" id="preview"></div>
 <button class="primary" onclick="add()">+ Add to selected date</button>
 </div>
 </section>
@@ -124,7 +124,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 
 <section id="custom" class="hidden">
 <div class="card"><h3>➕ Add your own food</h3>
-<div class="small">Add your yogurt, restaurant burrito bowl, exact whey brand, protein bar or homemade recipe. Enter nutrition for the reference amount; the app converts it to per-100-g values.</div>
+<div class="small">Add yogurt, restaurant meals, exact whey brands, homemade recipes, etc. Enter nutrition for the reference amount; the app converts it to per-100-g values.</div>
 <label>Food name</label><input id="cn" placeholder="Burrito bowl - my usual">
 <label>Reference amount (g/ml)</label><input id="cq" type="number" value="100">
 <div class="grid">
@@ -152,14 +152,16 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <button class="primary" onclick="saveSettings()">Save</button></div>
 <div class="card"><h3>Backup</h3><button class="secondary" onclick="backup()">Download backup</button></div>
 </section>
-<footer>History is stored by date on this device. Backup regularly if you want protection against browser/app data being cleared.</footer>
+<footer>History is stored by date on this device. Household measures are approximate; branded muesli and peanut-butter entries use the package labels you provided. Combo foods use 1 tbsp PB ≈ 15 g and standard portions. Backup regularly if you want protection against browser/app data being cleared.</footer>
 </div>
 
 <script>
 const B=[
 ["Egg, whole",12.6,143,9.5,1.1,0],["Egg white",10.9,52,.2,.7,0],["Toned milk",3.1,60,3.3,4.8,0],
 ["Greek/high-protein curd",9.5,70,3,4,0],["Curd/yogurt",3.5,60,3,4.7,0],["Buttermilk",1.5,35,1.5,4,0],
-["Paneer",18,265,20,4,0],["Low-fat paneer",22,180,10,5,0],["Tofu",15,145,9,3,.5],["Whey protein",75,400,6,10,0],
+["Paneer",18,265,20,4,0],["Low-fat paneer",22,180,10,5,0],["Tofu",15,145,9,3,.5],["Whey protein (generic)",75,400,6,10,0],
+["My Whey - 30g protein scoop (45g label)",66.67,396.11,5.15,20.44,0],
+["My Whey - 25g protein scoop (36g label)",69.44,394.39,5.51,16.20,0],
 ["Soy chunks (dry)",52,345,.5,33,8],["Soy chunks (cooked)",17,160,1,12,8],["Black chana (cooked)",8.6,164,2.6,27.4,7.6],
 ["White chana (cooked)",8.9,164,2.6,27.4,7.6],["Green moong (cooked)",7,105,.4,18.7,7.6],["Rajma (cooked)",8.7,127,.5,22.8,6.4],
 ["Chana dal (cooked)",8.9,164,2.6,27.4,7.6],["Toor dal (cooked)",9,162,1,27.1,7.8],["Masoor dal (cooked)",9,116,.4,20.1,7.9],
@@ -170,8 +172,49 @@ const B=[
 ["Chapati",9,297,4,50,11],["Idli",6,145,1,30,2],["Dosa",5.5,170,3.5,28,1],["Poha",2.5,110,3,18,2],
 ["Broccoli",2.4,35,.4,7.2,3.3],["Spinach",2.9,23,.4,3.8,2.4],["Mushroom",3.1,28,.5,5,1.5],
 ["Sweet corn",3.4,96,1.5,21,2.4],["Avocado",2,160,14.7,8.5,6.7],["Banana",1.1,89,.3,22.8,2.6],
-["Apple",.3,52,.2,13.8,2.4],["Orange",.9,47,.1,11.8,2.4],["Dates",1.5,282,.2,75,8]
-];
+["Apple",.3,52,.2,13.8,2.4],["Apple - small",.3,52,.2,13.8,2.4],["Apple - medium",.3,52,.2,13.8,2.4],["Apple - large",.3,52,.2,13.8,2.4],
+["Banana - small",1.1,89,.3,22.8,2.6],["Banana - medium",1.1,89,.3,22.8,2.6],["Banana - large",1.1,89,.3,22.8,2.6],
+["Orange",.9,47,.1,11.8,2.4],["Orange - small",.9,47,.1,11.8,2.4],["Orange - medium",.9,47,.1,11.8,2.4],["Orange - large",.9,47,.1,11.8,2.4],
+["Guava",2.6,68,1.0,14.3,5.4],["Guava - small",2.6,68,1.0,14.3,5.4],["Guava - medium",2.6,68,1.0,14.3,5.4],["Guava - large",2.6,68,1.0,14.3,5.4],["Dates",1.5,282,.2,75,8]
+,
+["Cucumber",0.7,15,0.1,3.6,0.5],["Carrot",0.9,41,0.2,9.6,2.8],["Onion",1.1,40,0.1,9.3,1.7],["Lettuce",1.4,15,0.2,2.9,1.3],
+["Green gram sprouts (steamed)",3.0,35,0.3,6.5,1.8],["Ghee",0,900,100,0,0],
+["Yoga Bar Muesli 1 (label)",9.7,367,6.2,73.0,9.5],["Yoga Bar Muesli 2 - High Protein (label)",23.0,386,10.7,53.1,7.5],
+["My Muesli Mix (50:50 by weight)",16.35,376.5,8.45,63.05,8.5],
+["Mixed seeds",20,550,44,18,9],
+["MyFitness Peanut Butter - Dark Chocolate",26.78,634.61,48.09,23.67,8.97],
+["Saffola Peanut Butter with Jaggery",24.3,629,50.9,21.4,6.0],
+["Multigrain bread (approx)",9.0,250,4.0,44.0,6.0],
+["Peanut Butter Multigrain Bread Toast (1 slice + 1 tbsp PB)",6.53,169.8,8.62,16.58,2.92],
+["Peanut Butter Chapati Roll (1 chapati + 1 tbsp PB)",7.43,213.6,9.02,23.38,5.52],
+["Buttermilk (200 ml)",1.5,35,1.5,4,0],
+["Lemon juice - half lemon",0.7,6,0.1,2.0,0.3],["Cinnamon powder - 1 pinch",0.0,2.5,0.0,0.8,0.5],["Honey - 1 tsp (5g)",0.0,15.2,0.0,4.1,0],
+["WOW Apple Cider Vinegar - 15 ml",0,3,0,0.7,0], ["Plix ACV tablet",0,0,0,0,0], ["Green tea - unsweetened 200 ml",0,1,0,0.2,0],
+["Chicken breast, boneless, skinless (raw)",21.8,168,9.0,0,0],["Chicken breast, boneless, skinless (cooked)",31,165,3.6,0,0],
+["Chicken thigh, boneless, skinless (raw)",18.2,200,14.2,0,0],["Chicken thigh, boneless, skinless (cooked)",26,209,10.9,0,0],
+["Chicken leg, boneless, skinless (raw)",19.4,384,12.6,0,0],["Chicken leg, bone-in (raw, approx edible portion)",14,270,9,0,0],
+["Chicken, bone-in (cooked, approx edible portion)",21,190,8,0,0],
+["Fish, rohu/rohu fillet (boneless, cooked)",22,140,5,0,0],["Fish, rohu (with bone, cooked; approx)",16,105,4,0,0],
+["Pomfret (boneless, cooked; approx)",20,120,4,0,0],["Pomfret (with bone, cooked; approx)",15,90,3,0,0],
+["Prawns, peeled (cooked)",24,110,1.5,0,0],["Mutton, boneless (cooked; approx)",25,250,18,0,0],["Mutton, with bone (cooked; approx edible portion)",18,220,16,0,0],
+["Chicken liver (cooked)",21.6,124,5,1,0],
+["Milky Mist Probiotic Greek Yogurt - label",8.0,77.8,2.2,6.5,0],
+["Jersey Super Soft Paneer - label",18.0,238.0,14.6,4.2,0],
+["Milky Mist Briyas Tofu - label",15.5,135.0,5.0,6.9,0],
+["Eggoz White Protein Rich Egg - label",13.01,153.61,10.93,0,0],
+["Egg Dosa (1 egg + 1 plain dosa)",14.5,172,7.0,17.5,1.0],
+["Steamed Idli",6.0,145,1.0,30,2.0],
+["Peanut chutney",8,250,18,12,4],
+["Coriander chutney",3,80,4,10,4],
+["Coconut chutney",3,280,27,8,4],
+["Toor dal sambar",4,90,2.5,13,4],
+["Moong dal tadka",7,140,5,18,6],
+["Sona/Kurnool rice (steamed/cooked)",2.7,130,0.3,28.2,0.4],
+["Egg curry (1 egg + gravy)",8,125,8.5,5,1.0],
+["Sweet corn on cob, boiled (medium, edible portion)",3.4,96,1.5,21,2.4],
+["Black sesame coconut chutney",7,300,25,12,5],
+["Egg bhurji (2 eggs + vegetables + 1 tsp oil)",14.5,220,15,4,1],
+["Paneer bhurji (100g paneer + vegetables + 1 tsp oil)",17,270,19,7,1.5]];
 
 let S=JSON.parse(localStorage.getItem("myPT")||'{"p":100,"c":1900,"days":{},"custom":[],"meals":{}}');
 const todayKey=()=>new Date().toISOString().slice(0,10);
@@ -191,16 +234,30 @@ function tab(id,b){
  if(id==="meals")mealUI();
 }
 function setDateFromAdd(){selectedDate=addDate.value||todayKey()}
+const UNIT={
+ 'My Whey - 30g protein scoop (45g label)':{serving:45},'My Whey - 25g protein scoop (36g label)':{serving:36},'Egg, whole':{piece:50},'Egg white':{piece:30},'Almonds':{piece:1.2},'Dates':{piece:7},'Chapati':{piece:40},'Idli':{piece:50},'Dosa':{piece:80},'Banana':{piece:100},'Banana - small':{piece:80},'Banana - medium':{piece:100},'Banana - large':{piece:120},'Apple':{piece:180},'Apple - small':{piece:150},'Apple - medium':{piece:180},'Apple - large':{piece:220},'Orange':{piece:130},'Orange - small':{piece:100},'Orange - medium':{piece:130},'Orange - large':{piece:180},'Guava':{piece:100},'Guava - small':{piece:80},'Guava - medium':{piece:120},'Guava - large':{piece:180},'Avocado':{piece:150},'Brown rice (cooked)':{bowl:180,cup:195},'White rice (cooked)':{bowl:180,cup:158},'Curd/yogurt':{bowl:200,cup:245},'Oats':{tbsp:6},'Muesli':{tbsp:8},'Yoga Bar Muesli 1 (label)':{tbsp:8},'Yoga Bar Muesli 2 - High Protein (label)':{tbsp:8},'My Muesli Mix (50:50 by weight)':{tbsp:8},'Mixed seeds':{tsp:5,tbsp:15},'Ghee':{tsp:5,tbsp:14},'Paneer':{bowl:150},'MyFitness Peanut Butter - Dark Chocolate':{tsp:5,tbsp:15},'Saffola Peanut Butter with Jaggery':{tsp:5,tbsp:15},'Multigrain bread (approx)':{piece:30},'Peanut Butter Multigrain Bread Toast (1 slice + 1 tbsp PB)':{serving:100},'Peanut Butter Chapati Roll (1 chapati + 1 tbsp PB)':{serving:100},'Buttermilk (200 ml)':{ml:1,serving:200},'Lemon juice - half lemon':{serving:30,ml:30},'Cinnamon powder - 1 pinch':{serving:0.5},'Honey - 1 tsp (5g)':{tsp:5},'WOW Apple Cider Vinegar - 15 ml':{ml:1,serving:15},'Plix ACV tablet':{piece:1},'Green tea - unsweetened 200 ml':{ml:1,serving:200},'Milky Mist Probiotic Greek Yogurt - label':{bowl:200,cup:245},'Jersey Super Soft Paneer - label':{bowl:150},'Milky Mist Briyas Tofu - label':{bowl:150},'Eggoz White Protein Rich Egg - label':{piece:50},'Egg Dosa (1 egg + 1 plain dosa)':{serving:130},'Steamed Idli':{piece:50},'Peanut chutney':{tbsp:15},'Coriander chutney':{tbsp:15},'Coconut chutney':{tbsp:15},'Toor dal sambar':{bowl:200,cup:240},'Moong dal tadka':{bowl:200,cup:240},'Sona/Kurnool rice (steamed/cooked)':{bowl:180,cup:158},'Egg curry (1 egg + gravy)':{serving:150},'Sweet corn on cob, boiled (medium, edible portion)':{piece:120},'Black sesame coconut chutney':{tbsp:15},'Egg bhurji (2 eggs + vegetables + 1 tsp oil)':{serving:140},'Paneer bhurji (100g paneer + vegetables + 1 tsp oil)':{serving:150},'Salad bowl (custom)':{bowl:300}
+};
+function gramsFor(f,q,u){
+ let g=q;
+ let spec=UNIT[f[0]]||{};
+ if(u==='ml') g=q*(spec.ml||f[6]||1);
+ else if(u==='tsp') g=q*(spec.tsp||f[7]||5);
+ else if(u==='tbsp') g=q*(spec.tbsp||f[8]||15);
+ else if(u==='piece') g=q*(spec.piece||f[9]||f[6]||50);
+ else if(u==='bowl') g=q*(spec.bowl||f[10]||250);
+ else if(u==='cup') g=q*(spec.cup||f[11]||180);
+ else if(u==='serving') g=q*(spec.serving||f[12]||100);
+ return g;
+}
+function unitText(f,u){
+ if(u==='g') return 'grams'; if(u==='ml') return 'ml'; if(u==='tsp') return '≈ '+(f[7]||5)+' g/tsp'; if(u==='tbsp') return '≈ '+(f[8]||15)+' g/tbsp'; if(u==='piece') return '≈ '+(f[9]||f[6]||50)+' g/piece'; if(u==='bowl') return '≈ '+(f[10]||250)+' g/bowl'; if(u==='cup') return '≈ '+(f[11]||180)+' g/cup'; return '≈ '+(f[12]||100)+' g/serving';
+}
 function opts(){
- let q=(search.value||"").toLowerCase(), s=food; s.innerHTML="";
- arr().forEach((x,i)=>{if(x[0].toLowerCase().includes(q)){let o=document.createElement("option");o.value=i;o.text=x[0];s.add(o)}});prev()
+ let q=(search.value||'').toLowerCase(), s=food; s.innerHTML='';
+ arr().forEach((x,i)=>{if(x[0].toLowerCase().includes(q)){let o=document.createElement('option');o.value=i;o.text=x[0];s.add(o)}});prev()
 }
-function prev(){let f=arr()[+food.value||0],q=+qty.value||0;preview.textContent=(f[1]*q/100).toFixed(1)+" g protein • "+Math.round(f[2]*q/100)+" kcal"}
-function add(){
- let f=arr()[+food.value],q=+qty.value||0,d=selectedDate||todayKey(); if(!q||!f)return;
- getDay(d).push({meal:meal.value,name:f[0],q,p:f[1]*q/100,c:f[2]*q/100,f:f[3]*q/100,carb:f[4]*q/100,fiber:f[5]*q/100});
- save(); renderToday(); alert("Added to "+d);
-}
+function prev(){let f=arr()[+food.value||0],q=+qty.value||0,u=unit.value||'g';if(!f)return;let g=gramsFor(f,q,u);unitHint.textContent=unitText(f,u);preview.textContent=(f[1]*g/100).toFixed(1)+' g protein • '+Math.round(f[2]*g/100)+' kcal • '+(f[5]*g/100).toFixed(1)+' g fibre'}
+function add(){let f=arr()[+food.value],q=+qty.value||0,u=unit.value||'g',d=selectedDate||todayKey();if(!q||!f)return;let g=gramsFor(f,q,u);getDay(d).push({meal:meal.value,name:f[0],q,unit:u,g,p:f[1]*g/100,c:f[2]*g/100,f:f[3]*g/100,carb:f[4]*g/100,fiber:f[5]*g/100});save();renderToday();alert('Added to '+d)}
 function totals(a){
  return {
   p:a.reduce((s,x)=>s+(+x.p||0),0),
@@ -215,7 +272,7 @@ function renderToday(){
  pt.textContent=t.p.toFixed(1)+" g";ct.textContent=Math.round(t.c)+" kcal";ptg.textContent="of "+S.p+" g";ctg.textContent="of "+S.c+" kcal";
  pb.style.width=Math.min(100,t.p/S.p*100)+"%";cb.style.width=Math.min(100,t.c/S.c*100)+"%";
  fat.textContent=t.f.toFixed(1);carb.textContent=t.carb.toFixed(1);fib.textContent=t.fiber.toFixed(1);items.textContent=a.length;
- todayList.innerHTML="<h3>Today's food</h3>"+(a.length?a.map((x,i)=>`<div class=row><div><b>${x.name}</b><div class=small>${x.meal} • ${x.q} g/ml</div></div><div><span class=protein>${x.p.toFixed(1)}g P</span> <button class=danger onclick='delToday(${i})'>×</button></div></div>`).join(""):"<div class=small>No food added yet.</div>")
+ todayList.innerHTML="<h3>Today's food</h3>"+(a.length?a.map((x,i)=>`<div class=row><div><b>${x.name}</b><div class=small>${x.meal} • ${x.q} ${x.unit==='g'?'g':x.unit==='ml'?'ml':x.unit}</div></div><div><span class=protein>${x.p.toFixed(1)}g P</span> <button class=danger onclick='delToday(${i})'>×</button></div></div>`).join(""):"<div class=small>No food added yet.</div>")
 }
 function delToday(i){getDay(todayKey()).splice(i,1);save();renderToday()}
 function renderHistoryDay(){
@@ -226,7 +283,7 @@ function renderHistoryDay(){
  <div class=stat><b class="${t.p>=target?'good':'bad'}">${t.p>=target?'✓ Target hit':'Below target'}</b><span class=small>Protein target</span></div>
  <div class=stat><b>${a.length}</b><span class=small>Food items</span></div></div>`;
  if(a.length){
-  historyDay.innerHTML+=a.map((x,i)=>`<div class=row><div><b>${x.name}</b><div class=small>${x.meal} • ${x.q} g/ml</div></div><div><span class=protein>${x.p.toFixed(1)}g P</span> <button class=danger onclick='delHistory(${i},"${d}")'>×</button></div></div>`).join("");
+  historyDay.innerHTML+=a.map((x,i)=>`<div class=row><div><b>${x.name}</b><div class=small>${x.meal} • ${x.q} ${x.unit==='g'?'g':x.unit==='ml'?'ml':x.unit}</div></div><div><span class=protein>${x.p.toFixed(1)}g P</span> <button class=danger onclick='delHistory(${i},"${d}")'>×</button></div></div>`).join("");
  }else historyDay.innerHTML+="<div class=note small>No entries for this date. You can backfill it from Add Food by selecting this date.</div>";
 }
 function delHistory(i,d){getDay(d).splice(i,1);save();renderHistoryDay();renderHistorySummary()}
@@ -306,9 +363,46 @@ function saveFood(){
 function customList(){document.getElementById("customList").innerHTML=S.custom.length?S.custom.map((x,i)=>`<div class=row><div><b>${x[0]}</b><div class=small>${x[1].toFixed(1)}g protein • ${Math.round(x[2])} kcal • ${x[5]?x[5].toFixed(1):"0"}g fibre /100g</div></div><button class=danger onclick='S.custom.splice(${i},1);save();customList()'>Delete</button></div>`).join(""):"<div class=small>No custom foods yet.</div>"}
 function mealUI(){mfoods.innerHTML=arr().map((x,i)=>`<option value=${i}>${x[0]}</option>`).join("");mealList.innerHTML=Object.keys(S.meals).map(n=>`<div class=row><b>${n}</b><button class=primary onclick="addMeal('${n.replaceAll("'","\\\\'")}')">Add</button></div>`).join("")||"<div class=small>No saved meals yet.</div>"}
 function saveMeal(){let n=mn.value.trim(),ids=[...mfoods.selectedOptions].map(o=>+o.value),m=+mult.value||1;if(!n||!ids.length)return alert("Enter a name and choose foods.");S.meals[n]={ids,m};save();mealUI();alert("Saved meal")}
-function addMeal(n){let m=S.meals[n];m.ids.forEach(i=>{let f=arr()[i],q=100*m.m;getDay(todayKey()).push({meal:n,name:f[0],q,p:f[1]*q/100,c:f[2]*q/100,f:f[3]*q/100,carb:f[4]*q/100,fiber:f[5]*q/100})});save();renderToday()}
+function addMeal(n){let m=S.meals[n];m.ids.forEach((i,k)=>{let f=arr()[i],q=m.qs?m.qs[k]:100*m.m,u=m.units?m.units[k]:'g',g=gramsFor(f,q,u);getDay(todayKey()).push({meal:n,name:f[0],q,unit:u,g,p:f[1]*g/100,c:f[2]*g/100,f:f[3]*g/100,carb:f[4]*g/100,fiber:f[5]*g/100})});if(m.extraGhee){let f=arr().find(x=>x[0]==='Ghee');if(f){let q=m.extraGhee;getDay(todayKey()).push({meal:n,name:'Ghee',q,unit:'g',g:q,p:0,c:f[2]*q/100,f:f[3]*q/100,carb:0,fiber:0})}}save();renderToday()}
 function saveSettings(){S.p=+sp.value||100;S.c=+sc.value||1900;save();renderToday();alert("Saved")}
 function backup(){let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="my-protein-tracker-backup.json";a.click()}
-sp.value=S.p;sc.value=S.c;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
+function ensurePresetMeals(){
+ if(!S.meals['5 Overnight Soaked Almonds']){
+  const i=arr().findIndex(x=>x[0]==='Almonds'); if(i>=0) S.meals['5 Overnight Soaked Almonds']={ids:[i],qs:[5],units:['piece'],notes:'5 overnight-soaked almonds.'};
+ }
+ if(!S.meals['Morning Warm Water Routine']){
+  const names=['Chia seeds','Lemon juice - half lemon','Cinnamon powder - 1 pinch','Honey - 1 tsp (5g)'];
+  const qs=[5,1,1,1];
+  const units=['g','serving','serving','tsp'];
+  const ids=names.map(n=>arr().findIndex(x=>x[0]===n)).filter(i=>i>=0);
+  S.meals['Morning Warm Water Routine']={ids,qs,units,notes:'Warm water itself is not counted. Includes 1 tsp chia, half lemon, a pinch of cinnamon and 1 tsp/5g honey.'};
+ }
+ if(!S.meals['Salad Bowl (my usual)']){
+  const names=['Broccoli','Green gram sprouts (steamed)','Avocado','Cucumber','Carrot','Onion','Peanuts','Paneer','Soy chunks (dry)','Mushroom','Curd/yogurt'];
+  const qs=[36,70,40,35,20,15,25,56,25,80,100];
+  const ids=names.map(n=>arr().findIndex(x=>x[0]===n)).filter(i=>i>=0); S.meals['Salad Bowl (my usual)']={ids,qs,extraGhee:5,notes:'Your saved salad bowl. Lettuce 2 leaves is not separately counted.'};
+ }
+ if(!S.meals['Oats Meal (my usual)']){
+  const names=['Oats','My Muesli Mix (50:50 by weight)','Mixed seeds','Dates','Almonds'];
+  const qs=[30,45,5,21,6];
+  const ids=names.map(n=>arr().findIndex(x=>x[0]===n)).filter(i=>i>=0); S.meals['Oats Meal (my usual)']={ids,qs,notes:'Muesli mix uses the two package labels you provided, averaged 50:50 by weight.'};
+ }
+
+ if(!S.meals['Egg Dosa Breakfast']){
+  const names=['Egg Dosa (1 egg + 1 plain dosa)'];
+  const ids=names.map(n=>arr().findIndex(x=>x[0]===n)).filter(i=>i>=0);
+  S.meals['Egg Dosa Breakfast']={ids,qs:[1],units:['serving'],notes:'One egg dosa; recipe/size can vary.'};
+ }
+ if(!S.meals['Egg Bhurji - 2 Eggs']){
+  const i=arr().findIndex(x=>x[0]==='Egg bhurji (2 eggs + vegetables + 1 tsp oil)');
+  if(i>=0) S.meals['Egg Bhurji - 2 Eggs']={ids:[i],qs:[1],units:['serving'],notes:'Use this as a quick one-click entry. For more accurate tracking, log the number of eggs and cooking oil separately.'};
+ }
+ if(!S.meals['Paneer Bhurji - 100g Paneer']){
+  const i=arr().findIndex(x=>x[0]==='Paneer bhurji (100g paneer + vegetables + 1 tsp oil)');
+  if(i>=0) S.meals['Paneer Bhurji - 100g Paneer']={ids:[i],qs:[1],units:['serving'],notes:'One serving based on 100g paneer plus vegetables and 1 tsp oil.'};
+ }
+ save();
+}
+ensurePresetMeals();sp.value=S.p;sc.value=S.c;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
 </script>
 </body></html>
