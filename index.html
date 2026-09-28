@@ -361,48 +361,62 @@ function saveFood(){
  S.custom.push([n,p*100/q,k*100/q,f*100/q,ch*100/q,fi*100/q]);save();cn.value="";customList();alert("Added to My Foods")
 }
 function customList(){document.getElementById("customList").innerHTML=S.custom.length?S.custom.map((x,i)=>`<div class=row><div><b>${x[0]}</b><div class=small>${x[1].toFixed(1)}g protein • ${Math.round(x[2])} kcal • ${x[5]?x[5].toFixed(1):"0"}g fibre /100g</div></div><button class=danger onclick='S.custom.splice(${i},1);save();customList()'>Delete</button></div>`).join(""):"<div class=small>No custom foods yet.</div>"}
-function mealUI(){mfoods.innerHTML=arr().map((x,i)=>`<option value=${i}>${x[0]}</option>`).join("");mealList.innerHTML=Object.keys(S.meals).map(n=>`<div class=row><b>${n}</b><button class=primary onclick="addMeal('${n.replaceAll("'","\\\\'")}')">Add</button></div>`).join("")||"<div class=small>No saved meals yet.</div>"}
-function saveMeal(){let n=mn.value.trim(),ids=[...mfoods.selectedOptions].map(o=>+o.value),m=+mult.value||1;if(!n||!ids.length)return alert("Enter a name and choose foods.");S.meals[n]={ids,m};save();mealUI();alert("Saved meal")}
-function addMeal(n){let m=S.meals[n];m.ids.forEach((i,k)=>{let f=arr()[i],q=m.qs?m.qs[k]:100*m.m,u=m.units?m.units[k]:'g',g=gramsFor(f,q,u);getDay(todayKey()).push({meal:n,name:f[0],q,unit:u,g,p:f[1]*g/100,c:f[2]*g/100,f:f[3]*g/100,carb:f[4]*g/100,fiber:f[5]*g/100})});if(m.extraGhee){let f=arr().find(x=>x[0]==='Ghee');if(f){let q=m.extraGhee;getDay(todayKey()).push({meal:n,name:'Ghee',q,unit:'g',g:q,p:0,c:f[2]*q/100,f:f[3]*q/100,carb:0,fiber:0})}}save();renderToday()}
+function mealUI(){
+ mfoods.innerHTML=arr().map((x,i)=>`<option value=${i}>${x[0]}</option>`).join("");
+ mealList.innerHTML=Object.keys(S.meals).map(n=>`<div class=row><b>${n}</b><button class=primary onclick="addMeal('${n.replaceAll("'","\\'")}')">Add</button></div>`).join("")||"<div class=small>No saved meals yet.</div>"
+}
+function mealFoodNames(m){
+ if(Array.isArray(m.names)&&m.names.length)return m.names;
+ if(Array.isArray(m.ids))return m.ids.map(i=>arr()[i]).filter(Boolean).map(f=>f[0]);
+ return [];
+}
+function saveMeal(){
+ let n=mn.value.trim(),ids=[...mfoods.selectedOptions].map(o=>+o.value),m=+mult.value||1;
+ if(!n||!ids.length)return alert("Enter a name and choose foods.");
+ let names=ids.map(i=>arr()[i]).filter(Boolean).map(f=>f[0]);
+ S.meals[n]={names,m};
+ save();mealUI();alert("Saved meal")
+}
+function addMeal(n){
+ let m=S.meals[n]; if(!m)return;
+ let names=mealFoodNames(m),day=getDay(todayKey()),added=0;
+ names.forEach((name,k)=>{
+   let f=arr().find(x=>x[0]===name); if(!f)return;
+   let q=(m.qs&&m.qs[k]!=null)?+m.qs[k]:(100*(+m.m||1));
+   let u=(m.units&&m.units[k])||'g'; if(!q||!Number.isFinite(q))return;
+   let g=gramsFor(f,q,u); if(!Number.isFinite(g))return;
+   day.push({meal:n,name:f[0],q,unit:u,g,p:(+f[1]||0)*g/100,c:(+f[2]||0)*g/100,f:(+f[3]||0)*g/100,carb:(+f[4]||0)*g/100,fiber:(+f[5]||0)*g/100});
+   added++;
+ });
+ if(m.extraGhee){let f=arr().find(x=>x[0]==='Ghee');if(f){let q=+m.extraGhee;day.push({meal:n,name:'Ghee',q,unit:'g',g:q,p:0,c:(+f[2]||0)*q/100,f:(+f[3]||0)*q/100,carb:0,fiber:0});added++}}
+ if(!m.names&&names.length)m.names=names;
+ save();renderToday();
+ if(!added)alert('This saved meal has no valid food entries. Please save the meal again.');
+}
+
 function saveSettings(){S.p=+sp.value||100;S.c=+sc.value||1900;save();renderToday();alert("Saved")}
 function backup(){let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="my-protein-tracker-backup.json";a.click()}
 function ensurePresetMeals(){
- if(!S.meals['5 Overnight Soaked Almonds']){
-  const i=arr().findIndex(x=>x[0]==='Almonds'); if(i>=0) S.meals['5 Overnight Soaked Almonds']={ids:[i],qs:[5],units:['piece'],notes:'5 overnight-soaked almonds.'};
- }
- if(!S.meals['Morning Warm Water Routine']){
-  const names=['Chia seeds','Lemon juice - half lemon','Cinnamon powder - 1 pinch','Honey - 1 tsp (5g)'];
-  const qs=[5,1,1,1];
-  const units=['g','serving','serving','tsp'];
-  const ids=names.map(n=>arr().findIndex(x=>x[0]===n)).filter(i=>i>=0);
-  S.meals['Morning Warm Water Routine']={ids,qs,units,notes:'Warm water itself is not counted. Includes 1 tsp chia, half lemon, a pinch of cinnamon and 1 tsp/5g honey.'};
- }
- if(!S.meals['Salad Bowl (my usual)']){
-  const names=['Broccoli','Green gram sprouts (steamed)','Avocado','Cucumber','Carrot','Onion','Peanuts','Paneer','Soy chunks (dry)','Mushroom','Curd/yogurt'];
-  const qs=[36,70,40,35,20,15,25,56,25,80,100];
-  const ids=names.map(n=>arr().findIndex(x=>x[0]===n)).filter(i=>i>=0); S.meals['Salad Bowl (my usual)']={ids,qs,extraGhee:5,notes:'Your saved salad bowl. Lettuce 2 leaves is not separately counted.'};
- }
- if(!S.meals['Oats Meal (my usual)']){
-  const names=['Oats','My Muesli Mix (50:50 by weight)','Mixed seeds','Dates','Almonds'];
-  const qs=[30,45,5,21,6];
-  const ids=names.map(n=>arr().findIndex(x=>x[0]===n)).filter(i=>i>=0); S.meals['Oats Meal (my usual)']={ids,qs,notes:'Muesli mix uses the two package labels you provided, averaged 50:50 by weight.'};
- }
-
- if(!S.meals['Egg Dosa Breakfast']){
-  const names=['Egg Dosa (1 egg + 1 plain dosa)'];
-  const ids=names.map(n=>arr().findIndex(x=>x[0]===n)).filter(i=>i>=0);
-  S.meals['Egg Dosa Breakfast']={ids,qs:[1],units:['serving'],notes:'One egg dosa; recipe/size can vary.'};
- }
- if(!S.meals['Egg Bhurji - 2 Eggs']){
-  const i=arr().findIndex(x=>x[0]==='Egg bhurji (2 eggs + vegetables + 1 tsp oil)');
-  if(i>=0) S.meals['Egg Bhurji - 2 Eggs']={ids:[i],qs:[1],units:['serving'],notes:'Use this as a quick one-click entry. For more accurate tracking, log the number of eggs and cooking oil separately.'};
- }
- if(!S.meals['Paneer Bhurji - 100g Paneer']){
-  const i=arr().findIndex(x=>x[0]==='Paneer bhurji (100g paneer + vegetables + 1 tsp oil)');
-  if(i>=0) S.meals['Paneer Bhurji - 100g Paneer']={ids:[i],qs:[1],units:['serving'],notes:'One serving based on 100g paneer plus vegetables and 1 tsp oil.'};
- }
+ const setPreset=(name,names,qs,units,extraGhee,notes)=>{
+   const valid=names.filter(n=>arr().some(f=>f[0]===n));
+   const m={names:valid};
+   if(qs)m.qs=valid.map(n=>qs[names.indexOf(n)]);
+   if(units)m.units=valid.map(n=>units[names.indexOf(n)]);
+   if(extraGhee)m.extraGhee=extraGhee;
+   if(notes)m.notes=notes;
+   S.meals[name]=m;
+ };
+ setPreset('5 Overnight Soaked Almonds',['Almonds'],[5],['piece'],0,'5 overnight-soaked almonds.');
+ setPreset('Morning Warm Water Routine',['Chia seeds','Lemon juice - half lemon','Cinnamon powder - 1 pinch','Honey - 1 tsp (5g)'],[5,1,1,1],['g','serving','serving','tsp'],0,'Warm water itself is not counted.');
+ setPreset('Salad Bowl (my usual)',['Broccoli','Green gram sprouts (steamed)','Avocado','Cucumber','Carrot','Onion','Peanuts','Paneer','Soy chunks (dry)','Mushroom','Curd/yogurt'],[36,70,40,35,20,15,25,56,25,80,100],Array(11).fill('g'),5,'Your saved salad bowl.');
+ setPreset('Oats Meal (my usual)',['Oats','My Muesli Mix (50:50 by weight)','Mixed seeds','Dates','Almonds'],[30,45,5,21,6],Array(5).fill('g'),0,'Muesli mix uses the two package labels you provided.');
+ setPreset('Egg Dosa Breakfast',['Egg Dosa (1 egg + 1 plain dosa)'],[1],['serving'],0,'One egg dosa; recipe/size can vary.');
+ setPreset('Egg Bhurji - 2 Eggs',['Egg bhurji (2 eggs + vegetables + 1 tsp oil)'],[1],['serving'],0,'Quick one-click entry.');
+ setPreset('Paneer Bhurji - 100g Paneer',['Paneer bhurji (100g paneer + vegetables + 1 tsp oil)'],[1],['serving'],0,'One serving based on 100g paneer plus vegetables and 1 tsp oil.');
+ Object.values(S.meals).forEach(m=>{if(m&&Array.isArray(m.ids)&&!Array.isArray(m.names)){m.names=m.ids.map(i=>arr()[i]).filter(Boolean).map(f=>f[0]);}});
  save();
 }
+
 ensurePresetMeals();sp.value=S.p;sc.value=S.c;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
 </script>
 </body></html>
