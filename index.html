@@ -25,7 +25,7 @@ label{display:block;color:var(--muted);font-size:12px;margin:9px 0 5px}.grid{dis
 .danger{background:#fff0f0;color:#b42318;border:0;border-radius:8px;padding:7px 10px}.hidden{display:none}
 .quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}.quick button{border:1px solid var(--line);background:#fff;padding:11px;border-radius:11px;text-align:left}
 .datebar{display:flex;gap:8px;align-items:end}.datebar>div{flex:1}
-.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.summary .stat{padding:12px}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.summary .stat{padding:12px}.miniMetric{padding:10px}.miniMetric b{font-size:20px}.metricTarget{margin-top:5px}.mealGroup{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:#fbfcfe}.mealGroup summary{cursor:pointer;list-style:none}.mealGroup summary::-webkit-details-marker{display:none}.mealGroup .row{padding:8px 0}.mealTotal{display:flex;align-items:center;justify-content:space-between;gap:8px}.mealActions{display:flex;gap:6px;align-items:center}.moreBtn{width:100%;margin-top:8px}
 .good{color:#15753b}.bad{color:#b42318}.note{background:#f7f9fc;border-radius:10px;padding:10px;margin-top:8px}
 canvas{width:100%;height:220px;background:#fbfcfe;border-radius:12px}
 footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
@@ -50,20 +50,12 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="metric"><div class="small">Protein</div><b id="pt">0 g</b><div class="bar"><div id="pb" class="fill"></div></div><div class="small" id="ptg"></div></div>
 <div class="metric"><div class="small">Calories</div><b id="ct">0 kcal</b><div class="bar"><div id="cb" class="fill"></div></div><div class="small" id="ctg"></div></div>
 </div>
-<div class="stats">
-<div class="stat"><b id="fat">0</b><span class="small">Fat g</span></div>
-<div class="stat"><b id="carb">0</b><span class="small">Carbs g</span></div>
-<div class="stat"><b id="fib">0</b><span class="small">Fibre g</span></div>
-<div class="stat"><b id="items">0</b><span class="small">Items</span></div>
+<div class="dash" style="margin-top:10px">
+<div class="metric miniMetric"><div class="small">Fat</div><b id="fat">0 g</b><div class="bar"><div id="fatBar" class="fill"></div></div><div class="small metricTarget" id="fatTargetText"></div></div>
+<div class="metric miniMetric"><div class="small">Carbs</div><b id="carb">0 g</b><div class="bar"><div id="carbBar" class="fill"></div></div><div class="small metricTarget" id="carbTargetText">No target set</div></div>
+<div class="metric miniMetric"><div class="small">Fibre</div><b id="fib">0 g</b><div class="bar"><div id="fibBar" class="fill"></div></div><div class="small metricTarget" id="fibTargetText"></div></div>
+<div class="metric miniMetric"><div class="small">Items</div><b id="items">0</b><div class="small metricTarget">Food entries</div></div>
 </div>
-</div>
-<div class="card">
-<h3>Fat & Fibre targets</h3>
-<div class="dash">
-<div class="metric"><div class="small">Fat</div><b id="fatTargetNow">0 g</b><div class="bar"><div id="fatBar" class="fill"></div></div><div class="small" id="fatTargetText"></div></div>
-<div class="metric"><div class="small">Fibre</div><b id="fibTargetNow">0 g</b><div class="bar"><div id="fibBar" class="fill"></div></div><div class="small" id="fibTargetText"></div></div>
-</div>
-<div class="small" style="margin-top:8px">Targets are editable in Settings. Fat and fibre are tracked from the same foods already counted for protein and calories.</div>
 </div>
 <div class="card" id="todayList"></div>
 </section>
@@ -311,12 +303,28 @@ function renderToday(){
  let a=getDay(todayKey()),t=totals(a);
  pt.textContent=t.p.toFixed(1)+" g";ct.textContent=Math.round(t.c)+" kcal";ptg.textContent="of "+S.p+" g";ctg.textContent="of "+S.c+" kcal";
  pb.style.width=Math.min(100,t.p/S.p*100)+"%";cb.style.width=Math.min(100,t.c/S.c*100)+"%";
- fat.textContent=t.f.toFixed(1);carb.textContent=t.carb.toFixed(1);fib.textContent=t.fiber.toFixed(1);items.textContent=a.length;
- fatTargetNow.textContent=t.f.toFixed(1)+' g'; fibTargetNow.textContent=t.fiber.toFixed(1)+' g';
- fatBar.style.width=Math.min(100,t.f/Math.max(S.f,1)*100)+'%'; fibBar.style.width=Math.min(100,t.fiber/Math.max(S.fi,1)*100)+'%';
- fatTargetText.textContent='of '+S.f+' g target'; fibTargetText.textContent='of '+S.fi+' g target';
- todayList.innerHTML="<h3>Today's food</h3>"+(a.length?a.map((x,i)=>{const p=Number(x.p)||0;const q=x.q??'';const u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${x.meal||''} • ${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i})'>Modify</button> <button class=danger onclick='delToday(${i})'>×</button></div></div>`}).join(""):"<div class=small>No food added yet.</div>");
+ fat.textContent=t.f.toFixed(1)+" g";carb.textContent=t.carb.toFixed(1)+" g";fib.textContent=t.fiber.toFixed(1)+" g";items.textContent=a.length;
+ fatBar.style.width=Math.min(100,t.f/Math.max(S.f,1)*100)+"%";fibBar.style.width=Math.min(100,t.fiber/Math.max(S.fi,1)*100)+"%";
+ fatTargetText.textContent="of "+S.f+" g target";fibTargetText.textContent="of "+S.fi+" g target";
+ // Carbohydrate has no target in Settings yet, so its bar is informational only.
+ carbBar.style.width=Math.min(100,t.carb/300*100)+"%";
+ const groups=[],seen=new Set();
+ a.forEach((x,i)=>{if(x.groupId){if(seen.has(x.groupId))return;seen.add(x.groupId);let idxs=[];a.forEach((y,j)=>{if(y.groupId===x.groupId)idxs.push(j)});groups.push({type:'meal',name:x.meal||'Saved meal',idxs});}else groups.push({type:'item',idxs:[i]})});
+ const limit=8,shown=groups.slice(0,limit),hidden=groups.length-limit;
+ const itemHtml=(i)=>{const x=a[i]||{},p=Number(x.p)||0,q=x.q??'',u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${x.meal||''} • ${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i})'>Modify</button> <button class=danger onclick='delToday(${i})'>×</button></div></div>`};
+ const groupHtml=(g)=>{let rows=g.idxs.map(itemHtml).join(''),tt=totals(g.idxs.map(i=>a[i]));return `<details class=mealGroup><summary><div class=mealTotal><div><b>🍽️ ${g.name}</b><div class=small>${g.idxs.length} foods • tap to expand and modify quantities</div></div><div class=mealActions><span class=protein>${tt.p.toFixed(1)}g P</span><button class=danger onclick='event.preventDefault();delMealGroup(${JSON.stringify(g.idxs)})'>×</button></div></div></summary>${rows}</details>`};
+ let html=`<h3>Today's food</h3>`;
+ if(!a.length) html+=`<div class=small>No food added yet.</div>`;
+ else {html+=shown.map(g=>g.type==='meal'?groupHtml(g):itemHtml(g.idxs[0])).join(''); if(hidden>0) html+=`<button id=showAllToday class=secondary onclick='showAllTodayFoods()' style='margin-top:10px'>Show all ${groups.length} entries</button>`;}
+ todayList.innerHTML=html;
 }
+function showAllTodayFoods(){
+ const a=getDay(todayKey()),groups=[],seen=new Set();a.forEach((x,i)=>{if(x.groupId){if(seen.has(x.groupId))return;seen.add(x.groupId);let idxs=[];a.forEach((y,j)=>{if(y.groupId===x.groupId)idxs.push(j)});groups.push({type:'meal',name:x.meal||'Saved meal',idxs});}else groups.push({type:'item',idxs:[i]})});
+ const itemHtml=(i)=>{const x=a[i]||{},p=Number(x.p)||0,q=x.q??'',u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${x.meal||''} • ${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i})'>Modify</button> <button class=danger onclick='delToday(${i})'>×</button></div></div>`};
+ const groupHtml=(g)=>{let tt=totals(g.idxs.map(i=>a[i]));return `<details class=mealGroup open><summary><div class=mealTotal><div><b>🍽️ ${g.name}</b><div class=small>${g.idxs.length} foods</div></div><div class=mealActions><span class=protein>${tt.p.toFixed(1)}g P</span><button class=danger onclick='event.preventDefault();delMealGroup(${JSON.stringify(g.idxs)})'>×</button></div></div></summary>${g.idxs.map(itemHtml).join('')}</details>`};
+ todayList.innerHTML=`<h3>Today's food</h3>`+groups.map(g=>g.type==='meal'?groupHtml(g):itemHtml(g.idxs[0])).join('')+`<button class=secondary onclick='renderToday()' style='margin-top:10px'>Show fewer</button>`;
+}
+function delMealGroup(idxs){getDay(todayKey());idxs.slice().sort((a,b)=>b-a).forEach(i=>getDay(todayKey()).splice(i,1));save();renderToday()}
 function delToday(i){getDay(todayKey()).splice(i,1);save();renderToday()}
 function renderHistoryDay(){
  let d=histDate.value||todayKey(),a=getDay(d),t=totals(a), target=S.p;
@@ -422,16 +430,16 @@ function saveMeal(){
 }
 function addMeal(n){
  let m=S.meals[n]; if(!m)return;
- let names=mealFoodNames(m),day=getDay(todayKey()),added=0;
+ let names=mealFoodNames(m),day=getDay(todayKey()),added=0,groupId='meal_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
  names.forEach((name,k)=>{
    let f=arr().find(x=>x[0]===name); if(!f)return;
    let q=(m.qs&&m.qs[k]!=null)?+m.qs[k]:(100*(+m.m||1));
    let u=(m.units&&m.units[k])||'g'; if(!q||!Number.isFinite(q))return;
    let g=gramsFor(f,q,u); if(!Number.isFinite(g))return;
-   day.push({meal:n,name:f[0],q,unit:u,g,p:(+f[1]||0)*g/100,c:(+f[2]||0)*g/100,f:(+f[3]||0)*g/100,carb:(+f[4]||0)*g/100,fiber:(+f[5]||0)*g/100});
+   day.push({groupId,meal:n,name:f[0],q,unit:u,g,p:(+f[1]||0)*g/100,c:(+f[2]||0)*g/100,f:(+f[3]||0)*g/100,carb:(+f[4]||0)*g/100,fiber:(+f[5]||0)*g/100});
    added++;
  });
- if(m.extraGhee){let f=arr().find(x=>x[0]==='Ghee');if(f){let q=+m.extraGhee;day.push({meal:n,name:'Ghee',q,unit:'g',g:q,p:0,c:(+f[2]||0)*q/100,f:(+f[3]||0)*q/100,carb:0,fiber:0});added++}}
+ if(m.extraGhee){let f=arr().find(x=>x[0]==='Ghee');if(f){let q=+m.extraGhee;day.push({groupId,meal:n,name:'Ghee',q,unit:'g',g:q,p:0,c:(+f[2]||0)*q/100,f:(+f[3]||0)*q/100,carb:0,fiber:0});added++}}
  if(!m.names&&names.length)m.names=names;
  save();renderToday();
  if(!added)alert('This saved meal has no valid food entries. Please save the meal again.');
