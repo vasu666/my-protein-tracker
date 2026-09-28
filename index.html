@@ -272,7 +272,7 @@ function renderToday(){
  pt.textContent=t.p.toFixed(1)+" g";ct.textContent=Math.round(t.c)+" kcal";ptg.textContent="of "+S.p+" g";ctg.textContent="of "+S.c+" kcal";
  pb.style.width=Math.min(100,t.p/S.p*100)+"%";cb.style.width=Math.min(100,t.c/S.c*100)+"%";
  fat.textContent=t.f.toFixed(1);carb.textContent=t.carb.toFixed(1);fib.textContent=t.fiber.toFixed(1);items.textContent=a.length;
- todayList.innerHTML="<h3>Today's food</h3>"+(a.length?a.map((x,i)=>`<div class=row><div><b>${x.name}</b><div class=small>${x.meal} • ${x.q} ${x.unit==='g'?'g':x.unit==='ml'?'ml':x.unit}</div></div><div><span class=protein>${x.p.toFixed(1)}g P</span> <button class=danger onclick='delToday(${i})'>×</button></div></div>`).join(""):"<div class=small>No food added yet.</div>")
+ todayList.innerHTML="<h3>Today's food</h3>"+(a.length?a.map((x,i)=>{const p=Number(x.p)||0;const q=x.q??'';const u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${x.meal||''} • ${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=danger onclick='delToday(${i})'>×</button></div></div>`}).join(""):"<div class=small>No food added yet.</div>");
 }
 function delToday(i){getDay(todayKey()).splice(i,1);save();renderToday()}
 function renderHistoryDay(){
@@ -283,7 +283,7 @@ function renderHistoryDay(){
  <div class=stat><b class="${t.p>=target?'good':'bad'}">${t.p>=target?'✓ Target hit':'Below target'}</b><span class=small>Protein target</span></div>
  <div class=stat><b>${a.length}</b><span class=small>Food items</span></div></div>`;
  if(a.length){
-  historyDay.innerHTML+=a.map((x,i)=>`<div class=row><div><b>${x.name}</b><div class=small>${x.meal} • ${x.q} ${x.unit==='g'?'g':x.unit==='ml'?'ml':x.unit}</div></div><div><span class=protein>${x.p.toFixed(1)}g P</span> <button class=danger onclick='delHistory(${i},"${d}")'>×</button></div></div>`).join("");
+  historyDay.innerHTML+=a.map((x,i)=>{const p=Number(x.p)||0;const q=x.q??'';const u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${x.meal||''} • ${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=danger onclick='delHistory(${i},"${d}")'>×</button></div></div>`}).join("");
  }else historyDay.innerHTML+="<div class=note small>No entries for this date. You can backfill it from Add Food by selecting this date.</div>";
 }
 function delHistory(i,d){getDay(d).splice(i,1);save();renderHistoryDay();renderHistorySummary()}
