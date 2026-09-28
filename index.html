@@ -57,6 +57,14 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="stat"><b id="items">0</b><span class="small">Items</span></div>
 </div>
 </div>
+<div class="card">
+<h3>Fat & Fibre targets</h3>
+<div class="dash">
+<div class="metric"><div class="small">Fat</div><b id="fatTargetNow">0 g</b><div class="bar"><div id="fatBar" class="fill"></div></div><div class="small" id="fatTargetText"></div></div>
+<div class="metric"><div class="small">Fibre</div><b id="fibTargetNow">0 g</b><div class="bar"><div id="fibBar" class="fill"></div></div><div class="small" id="fibTargetText"></div></div>
+</div>
+<div class="small" style="margin-top:8px">Targets are editable in Settings. Fat and fibre are tracked from the same foods already counted for protein and calories.</div>
+</div>
 <div class="card" id="todayList"></div>
 </section>
 
@@ -69,7 +77,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <label>Food</label><select id="food" onchange="prev()"></select>
 <label>Amount</label><div class="grid"><input id="qty" type="number" value="100" oninput="prev()"><select id="unit" onchange="prev()"><option value="g">g</option><option value="ml">ml</option><option value="tsp">teaspoon</option><option value="tbsp">tablespoon</option><option value="piece">piece</option><option value="bowl">bowl</option><option value="cup">cup</option><option value="serving">serving</option></select></div>
 <div class="small" id="unitHint"></div><div class="small" id="preview"></div>
-<button class="primary" onclick="add()">+ Add to selected date</button>
+<button id="addAction" class="primary" onclick="addOrUpdate()">+ Add to selected date</button>
 </div>
 </section>
 
@@ -149,7 +157,10 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <section id="settings" class="hidden">
 <div class="card"><h3>Targets</h3><label>Protein target g/day</label><input id="sp" type="number">
 <label>Calories target/day</label><input id="sc" type="number">
-<button class="primary" onclick="saveSettings()">Save</button></div>
+<label>Fat target g/day</label><input id="sf" type="number" step="0.1">
+<label>Fibre target g/day</label><input id="sfi" type="number" step="0.1">
+<div class="small" style="margin-top:8px">Protein and calories use your existing targets. Fat and fibre defaults are editable examples (60 g and 25 g/day); adjust them to your preferred targets.</div>
+<button class="primary" onclick="saveSettings()">Save targets</button></div>
 <div class="card"><h3>Backup</h3><button class="secondary" onclick="backup()">Download backup</button></div>
 </section>
 <footer>History is stored by date on this device. Household measures are approximate; branded muesli and peanut-butter entries use the package labels you provided. Combo foods use 1 tbsp PB ≈ 15 g and standard portions. Backup regularly if you want protection against browser/app data being cleared.</footer>
@@ -216,12 +227,14 @@ const B=[
 ["Egg bhurji (2 eggs + vegetables + 1 tsp oil)",14.5,220,15,4,1],
 ["Paneer bhurji (100g paneer + vegetables + 1 tsp oil)",17,270,19,7,1.5]];
 
-let S=JSON.parse(localStorage.getItem("myPT")||'{"p":100,"c":1900,"days":{},"custom":[],"meals":{}}');
+let S=JSON.parse(localStorage.getItem("myPT")||'{"p":100,"c":1900,"f":60,"fi":25,"days":{},"custom":[],"meals":{}}');
+if(S.f==null)S.f=60; if(S.fi==null)S.fi=25;
 const todayKey=()=>new Date().toISOString().slice(0,10);
 const getDay=(d)=>S.days[d]||(S.days[d]=[]);
 const arr=()=>B.concat(S.custom);
 const save=()=>localStorage.setItem("myPT",JSON.stringify(S));
 let selectedDate=todayKey();
+let editing=null;
 
 function tab(id,b){
  document.querySelectorAll("section").forEach(x=>x.classList.add("hidden"));
@@ -257,7 +270,34 @@ function opts(){
  arr().forEach((x,i)=>{if(x[0].toLowerCase().includes(q)){let o=document.createElement('option');o.value=i;o.text=x[0];s.add(o)}});prev()
 }
 function prev(){let f=arr()[+food.value||0],q=+qty.value||0,u=unit.value||'g';if(!f)return;let g=gramsFor(f,q,u);unitHint.textContent=unitText(f,u);preview.textContent=(f[1]*g/100).toFixed(1)+' g protein • '+Math.round(f[2]*g/100)+' kcal • '+(f[5]*g/100).toFixed(1)+' g fibre'}
-function add(){let f=arr()[+food.value],q=+qty.value||0,u=unit.value||'g',d=selectedDate||todayKey();if(!q||!f)return;let g=gramsFor(f,q,u);getDay(d).push({meal:meal.value,name:f[0],q,unit:u,g,p:f[1]*g/100,c:f[2]*g/100,f:f[3]*g/100,carb:f[4]*g/100,fiber:f[5]*g/100});save();renderToday();alert('Added to '+d)}
+function addOrUpdate(){
+ let f=arr()[+food.value],q=+qty.value||0,u=unit.value||'g',d=selectedDate||todayKey();
+ if(!q||!f){alert('Choose a food and amount.');return}
+ let g=gramsFor(f,q,u),entry={meal:meal.value,name:f[0],q,unit:u,g,p:(+f[1]||0)*g/100,c:(+f[2]||0)*g/100,f:(+f[3]||0)*g/100,carb:(+f[4]||0)*g/100,fiber:(+f[5]||0)*g/100};
+ if(editing){
+   let a=getDay(editing.d);
+   if(a[editing.i])a[editing.i]=entry;
+   save();
+   let was=editing.d; editing=null; resetAddAction();
+   if(was===todayKey())renderToday(); else {histDate.value=was;renderHistoryDay();renderHistorySummary()}
+   alert('Food updated');
+ }else{
+   getDay(d).push(entry);save();renderToday();alert('Added to '+d);
+ }
+}
+function resetAddAction(){addAction.textContent='+ Add to selected date';}
+function modifyToday(i,d=todayKey()){
+ let a=getDay(d),x=a[i]; if(!x)return;
+ selectedDate=d; editing={i,d};
+ addDate.value=d; meal.value=x.meal||'Breakfast'; search.value=''; opts();
+ let idx=arr().findIndex(f=>f[0]===x.name);
+ if(idx>=0){food.value=idx; prev();}else{food.value='';}
+ qty.value=x.q??''; unit.value=x.unit||'g'; prev();
+ addAction.textContent='✓ Update food';
+ let addBtn=document.querySelector('.tabs button:nth-child(2)');tab('add',addBtn);
+}
+function cancelEdit(){editing=null;resetAddAction();}
+
 function totals(a){
  return {
   p:a.reduce((s,x)=>s+(+x.p||0),0),
@@ -272,7 +312,10 @@ function renderToday(){
  pt.textContent=t.p.toFixed(1)+" g";ct.textContent=Math.round(t.c)+" kcal";ptg.textContent="of "+S.p+" g";ctg.textContent="of "+S.c+" kcal";
  pb.style.width=Math.min(100,t.p/S.p*100)+"%";cb.style.width=Math.min(100,t.c/S.c*100)+"%";
  fat.textContent=t.f.toFixed(1);carb.textContent=t.carb.toFixed(1);fib.textContent=t.fiber.toFixed(1);items.textContent=a.length;
- todayList.innerHTML="<h3>Today's food</h3>"+(a.length?a.map((x,i)=>{const p=Number(x.p)||0;const q=x.q??'';const u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${x.meal||''} • ${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=danger onclick='delToday(${i})'>×</button></div></div>`}).join(""):"<div class=small>No food added yet.</div>");
+ fatTargetNow.textContent=t.f.toFixed(1)+' g'; fibTargetNow.textContent=t.fiber.toFixed(1)+' g';
+ fatBar.style.width=Math.min(100,t.f/Math.max(S.f,1)*100)+'%'; fibBar.style.width=Math.min(100,t.fiber/Math.max(S.fi,1)*100)+'%';
+ fatTargetText.textContent='of '+S.f+' g target'; fibTargetText.textContent='of '+S.fi+' g target';
+ todayList.innerHTML="<h3>Today's food</h3>"+(a.length?a.map((x,i)=>{const p=Number(x.p)||0;const q=x.q??'';const u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${x.meal||''} • ${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i})'>Modify</button> <button class=danger onclick='delToday(${i})'>×</button></div></div>`}).join(""):"<div class=small>No food added yet.</div>");
 }
 function delToday(i){getDay(todayKey()).splice(i,1);save();renderToday()}
 function renderHistoryDay(){
@@ -283,7 +326,7 @@ function renderHistoryDay(){
  <div class=stat><b class="${t.p>=target?'good':'bad'}">${t.p>=target?'✓ Target hit':'Below target'}</b><span class=small>Protein target</span></div>
  <div class=stat><b>${a.length}</b><span class=small>Food items</span></div></div>`;
  if(a.length){
-  historyDay.innerHTML+=a.map((x,i)=>{const p=Number(x.p)||0;const q=x.q??'';const u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${x.meal||''} • ${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=danger onclick='delHistory(${i},"${d}")'>×</button></div></div>`}).join("");
+  historyDay.innerHTML+=a.map((x,i)=>{const p=Number(x.p)||0;const q=x.q??'';const u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${x.meal||''} • ${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i},"${d}")'>Modify</button> <button class=danger onclick='delHistory(${i},"${d}")'>×</button></div></div>`}).join("");
  }else historyDay.innerHTML+="<div class=note small>No entries for this date. You can backfill it from Add Food by selecting this date.</div>";
 }
 function delHistory(i,d){getDay(d).splice(i,1);save();renderHistoryDay();renderHistorySummary()}
@@ -394,7 +437,7 @@ function addMeal(n){
  if(!added)alert('This saved meal has no valid food entries. Please save the meal again.');
 }
 
-function saveSettings(){S.p=+sp.value||100;S.c=+sc.value||1900;save();renderToday();alert("Saved")}
+function saveSettings(){S.p=+sp.value||100;S.c=+sc.value||1900;S.f=+sf.value||60;S.fi=+sfi.value||25;save();renderToday();alert("Targets saved")}
 function backup(){let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="my-protein-tracker-backup.json";a.click()}
 function ensurePresetMeals(){
  const setPreset=(name,names,qs,units,extraGhee,notes)=>{
@@ -417,6 +460,6 @@ function ensurePresetMeals(){
  save();
 }
 
-ensurePresetMeals();sp.value=S.p;sc.value=S.c;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
+ensurePresetMeals();sp.value=S.p;sc.value=S.c;sf.value=S.f;sfi.value=S.fi;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
 </script>
 </body></html>
