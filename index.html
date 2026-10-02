@@ -64,7 +64,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="card"><h3>Add Food</h3>
 <label>Date</label><input id="addDate" type="date" onchange="setDateFromAdd()">
 <div class="small">You can select a past date to backfill a missed day. Household measures are approximate unless the food has a defined serving size.</div>
-<label>Meal</label><select id="meal"><option>Breakfast / Mid-Morning</option><option>Lunch</option><option>Evening Snack</option><option>Post-Workout</option><option>Dinner</option></select>
+<label>Meal</label><select id="meal"><option>Breakfast / Mid-Morning</option><option>Lunch</option><option>Evening Snack</option><option>Dinner</option></select>
 <div class="card" style="margin:10px 0;padding:12px;background:#f8fafc"><b>⚡ Quick add</b><div id="quickFoods" class="quick" style="margin-top:8px"></div></div><label>Search food</label><input id="search" oninput="opts()" placeholder="paneer, yogurt, burrito bowl...">
 <label>Food</label><select id="food" onchange="prev()"></select><div style="display:flex;gap:8px;align-items:center;margin-top:8px"><button type="button" class="secondary" onclick="toggleFavoriteSelected()" id="favBtn">☆ Favorite</button><span class="small" id="favHint"></span></div>
 <label>Amount</label><div class="grid"><input id="qty" type="number" value="100" oninput="prev()"><select id="unit" onchange="prev()"><option value="g">g</option><option value="ml">ml</option><option value="tsp">teaspoon</option><option value="tbsp">tablespoon</option><option value="piece">piece</option><option value="bowl">bowl</option><option value="cup">cup</option><option value="serving">serving</option></select></div>
@@ -88,7 +88,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="stat"><b id="weekHigh">0</b><span class="small">Highest g</span></div>
 <div class="stat"><b id="weekLow">0</b><span class="small">Lowest g</span></div>
 </div>
-<div class="note small">Meals are grouped by Breakfast / Mid-Morning, Lunch, Evening Snack, Post-Workout and Dinner so you can quickly see which parts of the day are logged. Days with no entry are shown as 0 g.</div>
+<div class="note small">Meals are grouped by Breakfast / Mid-Morning, Lunch, Evening Snack and Dinner so you can quickly see which parts of the day are logged. Days with no entry are shown as 0 g.</div>
 </div>
 <div class="card">
 <h3>Last 30 days</h3>
@@ -393,17 +393,10 @@ function renderProteinStreak(){
 }
 
 function trackingStreakInfo(){
- const todayLogged=getDay(todayKey()).length>0;
- let streak=0;
- const offset=todayLogged?0:1;
- for(let i=offset;i<365;i++){
-  if(getDay(dateOffsetKey(i)).length>0) streak++; else break;
- }
- let best=0,run=0;
- for(let i=364;i>=0;i--){
-  if(getDay(dateOffsetKey(i)).length>0){run++;best=Math.max(best,run)}else run=0;
- }
- return {streak,best,todayLogged};
+ // Daily streak is specifically the strict protein-target streak.
+ // A day only counts when the protein target is actually reached.
+ const x=proteinStreakInfo();
+ return {streak:x.streak,best:x.best,todayLogged:x.todayHit};
 }
 function proteinTargetDaysInfo(){
  let count=0;
@@ -477,12 +470,12 @@ function renderAchievements(){
  const tm=achievementTrack(tracking.streak,[10,30,45]);
  const pm=achievementTrack(targetDays,[50,100,200]);
  const badge=(m,done,next,label='days')=>`<span class="badge ${done?'done':m===next?'next':''}">${done?'🏆':'🔒'} ${m} ${label}</span>`;
- const trackText=tracking.todayLogged?`You're on a <b>${tracking.streak}-day tracking streak</b>. Keep logging something every day.`:`Today's log is still empty. Add at least one food to keep your tracking streak moving.`;
+ const trackText=tracking.todayLogged?`You're on a <b>${tracking.streak}-day protein streak</b>. Reach your protein target every day to keep it going.`:`Today's protein target is not reached yet. Reach your target to keep your daily streak alive.`;
  const proteinText=`You've reached your ${S.p} g protein target on <b>${targetDays} day${targetDays===1?'':'s'}</b> in total.`;
  const weekText=weekly.currentWeekComplete
   ? (weekly.currentCount>=5 ? `✅ This week qualified with <b>${weekly.currentCount}/7 target days</b>.` : `❌ This week finished at <b>${weekly.currentCount}/7 target days</b>; the weekly streak resets.`)
   : (weekly.currentCount>=5 ? `🎉 <b>${weekly.currentCount}/7 days</b> achieved — this week is already secured!` : `You have <b>${weekly.currentCount}/7 target days</b>. ${weekly.needed} more day${weekly.needed===1?'':'s'} needed to secure this week.`);
- el.innerHTML=`<h3 style="margin-bottom:4px">🏆 Achievement journey</h3><div class="small">Three ways to stay consistent: a strict daily streak, a forgiving 5-of-7 weekly streak, and lifetime protein-target milestones.</div><div class="achievementGrid"><div class="achievementCard"><div class="achievementHead"><div class="achievementTitle">📅 Daily tracking</div><b>${tracking.streak} 🔥</b></div><div class="donutWrap">${donutSvg(tm.progress,'Daily tracking progress')}<div><div class="achievementProgress">${tm.completed.length===3?'All tracking milestones unlocked!':`Next milestone: <b>${tm.next} days</b>`}</div><div class="small" style="margin-top:5px">Best streak: ${tracking.best} day${tracking.best===1?'':'s'}</div></div></div><div class="badgeRow">${[10,30,45].map(m=>badge(m,tracking.streak>=m,tm.next)).join('')}</div><div class="small" style="margin-top:8px">${trackText}</div></div><div class="achievementCard"><div class="achievementHead"><div class="achievementTitle">📆 Weekly protein streak</div><b>${weekly.streak} 🔥</b></div><div class="donutWrap">${donutSvg(Math.min(100,weekly.currentCount/5*100),'Weekly protein streak progress')}<div><div class="achievementProgress">This week: <b>${weekly.currentCount}/5</b> days needed</div><div class="small" style="margin-top:5px">Best weekly streak: ${weekly.best} week${weekly.best===1?'':'s'}</div></div></div><div class="badgeRow"><span class="badge ${weekly.currentCount>=5?'done':'next'}">${weekly.currentCount>=5?'🏆':'🎯'} 5/7 target days</span><span class="badge">Mon–Sun</span></div><div class="small" style="margin-top:8px">${weekText}</div></div><div class="achievementCard"><div class="achievementHead"><div class="achievementTitle">💪 Protein target</div><b>${targetDays} 🎯</b></div><div class="donutWrap">${donutSvg(pm.progress,'Protein target achievement progress')}<div><div class="achievementProgress">${pm.completed.length===3?'All protein milestones unlocked!':`Next milestone: <b>${pm.next} target days</b>`}</div><div class="small" style="margin-top:5px">Current daily streak: ${proteinStreakInfo().streak} day${proteinStreakInfo().streak===1?'':'s'}</div></div></div><div class="badgeRow">${[50,100,200].map(m=>badge(m,targetDays>=m,pm.next)).join('')}</div><div class="small" style="margin-top:8px">${proteinText}</div></div></div><div class="note small" style="margin-top:10px">💡 <b>My recommendation:</b> keep the daily streak strict so reaching your protein target every day remains motivating. The new <b>5-of-7 weekly streak</b> is your cushion for busy days — one or two missed days can happen without losing your weekly consistency streak. Lifetime protein achievements never reset.</div>`;
+ el.innerHTML=`<h3 style="margin-bottom:4px">🏆 Achievement journey</h3><div class="small">Three ways to stay consistent: a strict daily protein streak, a forgiving 5-of-7 weekly streak, and lifetime protein-target milestones.</div><div class="achievementGrid"><div class="achievementCard"><div class="achievementHead"><div class="achievementTitle">📅 Daily protein streak</div><b>${tracking.streak} 🔥</b></div><div class="donutWrap">${donutSvg(tm.progress,'Daily protein streak progress')}<div><div class="achievementProgress">${tm.completed.length===3?'All daily streak milestones unlocked!':`Next milestone: <b>${tm.next} days</b>`}</div><div class="small" style="margin-top:5px">Best streak: ${tracking.best} day${tracking.best===1?'':'s'}</div></div></div><div class="badgeRow">${[10,30,45].map(m=>badge(m,tracking.streak>=m,tm.next)).join('')}</div><div class="small" style="margin-top:8px">${trackText}</div></div><div class="achievementCard"><div class="achievementHead"><div class="achievementTitle">📆 Weekly protein streak</div><b>${weekly.streak} 🔥</b></div><div class="donutWrap">${donutSvg(Math.min(100,weekly.currentCount/5*100),'Weekly protein streak progress')}<div><div class="achievementProgress">This week: <b>${weekly.currentCount}/5</b> days needed</div><div class="small" style="margin-top:5px">Best weekly streak: ${weekly.best} week${weekly.best===1?'':'s'}</div></div></div><div class="badgeRow"><span class="badge ${weekly.currentCount>=5?'done':'next'}">${weekly.currentCount>=5?'🏆':'🎯'} 5/7 target days</span><span class="badge">Mon–Sun</span></div><div class="small" style="margin-top:8px">${weekText}</div></div><div class="achievementCard"><div class="achievementHead"><div class="achievementTitle">💪 Protein target</div><b>${targetDays} 🎯</b></div><div class="donutWrap">${donutSvg(pm.progress,'Protein target achievement progress')}<div><div class="achievementProgress">${pm.completed.length===3?'All protein milestones unlocked!':`Next milestone: <b>${pm.next} target days</b>`}</div><div class="small" style="margin-top:5px">Current daily streak: ${proteinStreakInfo().streak} day${proteinStreakInfo().streak===1?'':'s'}</div></div></div><div class="badgeRow">${[50,100,200].map(m=>badge(m,targetDays>=m,pm.next)).join('')}</div><div class="small" style="margin-top:8px">${proteinText}</div></div></div><div class="note small" style="margin-top:10px">💡 <b>My recommendation:</b> keep the daily protein streak strict so reaching your protein target every day remains motivating. The new <b>5-of-7 weekly streak</b> is your cushion for busy days — one or two missed days can happen without losing your weekly consistency streak. Lifetime protein achievements never reset.</div>`;
 }
 
 function renderInsight(t){
@@ -494,6 +487,19 @@ function renderInsight(t){
  dailyInsight.innerHTML=`<h3>💡 Today's insight</h3><div class=small>${parts.join(' • ')}</div>`;
 }
 
+function normalizeMealCategories(){
+ // One-time/harmless migration: the old Post-Workout category is now
+ // part of Breakfast / Mid-Morning. This preserves all existing entries
+ // and makes historical Today/History views use the new four-category model.
+ let changed=false;
+ Object.keys(S.days||{}).forEach(d=>{
+  (S.days[d]||[]).forEach(x=>{
+   if(x.meal==='Post-Workout'){x.meal='Breakfast / Mid-Morning'; changed=true;}
+  });
+ });
+ if(changed) save();
+}
+
 function renderToday(){
  let a=getDay(todayKey()),t=totals(a);
  pt.textContent=t.p.toFixed(1)+" g";ct.textContent=Math.round(t.c)+" kcal";ptg.textContent="of "+S.p+" g";ctg.textContent="of "+S.c+" kcal";
@@ -502,7 +508,7 @@ function renderToday(){
  fatBar.style.width=Math.min(100,t.f/Math.max(S.f,1)*100)+"%";fibBar.style.width=Math.min(100,t.fiber/Math.max(S.fi,1)*100)+"%"; renderProteinStreak(); renderAchievements();
  fatTargetText.textContent="of "+S.f+" g target";fibTargetText.textContent="of "+S.fi+" g target"; renderInsight(t);
  carbBar.style.width=Math.min(100,t.carb/300*100)+"%";
- const cats=['Breakfast / Mid-Morning','Lunch','Evening Snack','Post-Workout','Dinner'];
+ const cats=['Breakfast / Mid-Morning','Lunch','Evening Snack','Dinner'];
  const itemHtml=(i)=>{const x=a[i]||{},p=Number(x.p)||0,q=x.q??'',u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i})'>Modify</button> <button class=danger onclick='delToday(${i})'>×</button></div></div>`};
  const groupHtml=(g)=>{let rows=g.idxs.map(itemHtml).join(''),tt=totals(g.idxs.map(i=>a[i]));return `<details class=mealGroup><summary><div class=mealTotal><div><b>🍽️ ${g.name}</b><div class=small>${g.idxs.length} foods • tap to expand and modify quantities</div></div><div class=mealActions><span class=protein>${tt.p.toFixed(1)}g P</span><button class=danger onclick='event.preventDefault();delMealGroup(${JSON.stringify(g.idxs)})'>×</button></div></div></summary>${rows}</details>`};
  const categoryHtml=(cat)=>{
@@ -543,7 +549,7 @@ function copyPreviousDay(){
 }
 function renderHistoryDay(){
  let d=histDate.value||todayKey(),a=getDay(d),t=totals(a), target=S.p;
- const cats=['Breakfast / Mid-Morning','Lunch','Evening Snack','Post-Workout','Dinner'];
+ const cats=['Breakfast / Mid-Morning','Lunch','Evening Snack','Dinner'];
  const groups=cats.map(cat=>({cat,idxs:a.map((x,i)=>({x,i})).filter(z=>(cat==='Breakfast / Mid-Morning' ? (z.x.meal==='Breakfast'||z.x.meal==='Mid-Morning'||z.x.meal==='Breakfast / Mid-Morning') : (z.x.meal||'Breakfast / Mid-Morning')===cat))}));
  const logged=groups.filter(g=>g.idxs.length).length;
  historyDay.innerHTML=`<h4>${d}</h4><div class=summary>
@@ -680,7 +686,7 @@ function showAddMealOptions(n){
  let box=document.getElementById('mealAddOptions');
  if(!box){box=document.createElement('div');box.id='mealAddOptions';box.className='card';document.getElementById('meals').appendChild(box);}
  const safe=JSON.stringify(n).replaceAll('"','&quot;');
- box.innerHTML=`<h3>Add <b>${n}</b></h3><label>Date</label><input id="mealAddDate" type="date" value="${selectedDate||todayKey()}"><label>Category</label><select id="mealAddCat"><option>Breakfast / Mid-Morning</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select><button class="primary" onclick="addMeal(${safe})">✓ Add meal</button><button class="secondary" onclick="document.getElementById('mealAddOptions').remove()">Cancel</button>`;
+ box.innerHTML=`<h3>Add <b>${n}</b></h3><label>Date</label><input id="mealAddDate" type="date" value="${selectedDate||todayKey()}"><label>Category</label><select id="mealAddCat"><option>Breakfast / Mid-Morning</option><option>Lunch</option><option>Evening Snack</option><option>Dinner</option></select><button class="primary" onclick="addMeal(${safe})">✓ Add meal</button><button class="secondary" onclick="document.getElementById('mealAddOptions').remove()">Cancel</button>`;
  box.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
@@ -740,7 +746,7 @@ function backup(){
 }
 function restoreBackup(ev){
  const file=ev.target.files?.[0]; if(!file)return;
- const r=new FileReader(); r.onload=()=>{try{const data=JSON.parse(r.result); if(!data||typeof data!=="object"||!data.days||!data.meals){throw new Error("Invalid backup");} if(!confirm("Restore this backup? Your current local tracker data will be replaced.")){ev.target.value="";return;} S=data; if(S.f==null)S.f=60;if(S.fi==null)S.fi=25;if(!Array.isArray(S.favorites))S.favorites=[];if(!Array.isArray(S.recent))S.recent=[];save();sp.value=S.p;sc.value=S.c;sf.value=S.f;sfi.value=S.fi;opts();renderQuickFoods();renderToday();customList();mealUI();backupStatus.textContent="Backup restored: "+new Date().toLocaleString("en-IN");alert("Backup restored successfully");}catch(e){alert("Could not restore backup. Please choose a valid My Protein Tracker backup file.");}ev.target.value="";}; r.readAsText(file);
+ const r=new FileReader(); r.onload=()=>{try{const data=JSON.parse(r.result); if(!data||typeof data!=="object"||!data.days||!data.meals){throw new Error("Invalid backup");} if(!confirm("Restore this backup? Your current local tracker data will be replaced.")){ev.target.value="";return;} S=data; normalizeMealCategories(); if(S.f==null)S.f=60;if(S.fi==null)S.fi=25;if(!Array.isArray(S.favorites))S.favorites=[];if(!Array.isArray(S.recent))S.recent=[];save();sp.value=S.p;sc.value=S.c;sf.value=S.f;sfi.value=S.fi;opts();renderQuickFoods();renderToday();customList();mealUI();backupStatus.textContent="Backup restored: "+new Date().toLocaleString("en-IN");alert("Backup restored successfully");}catch(e){alert("Could not restore backup. Please choose a valid My Protein Tracker backup file.");}ev.target.value="";}; r.readAsText(file);
 }
 function csvCell(v){let s=String(v??"");return '"'+s.replaceAll('"','""')+'"'}
 function exportCSV(){
@@ -785,6 +791,6 @@ function ensurePresetMeals(){
   }).catch(()=>{});
 })();
 
-ensurePresetMeals();ensureFoodIds();renderQuickFoods();sp.value=S.p;sc.value=S.c;sf.value=S.f;sfi.value=S.fi;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
+ensurePresetMeals();ensureFoodIds();normalizeMealCategories();renderQuickFoods();sp.value=S.p;sc.value=S.c;sf.value=S.f;sfi.value=S.fi;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
 </script>
 </body></html>
