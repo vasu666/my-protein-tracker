@@ -25,7 +25,7 @@ label{display:block;color:var(--muted);font-size:12px;margin:9px 0 5px}.grid{dis
 .danger{background:#fff0f0;color:#b42318;border:0;border-radius:8px;padding:7px 10px}.hidden{display:none}
 .quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}.quick button{border:1px solid var(--line);background:#fff;padding:11px;border-radius:11px;text-align:left}
 .datebar{display:flex;gap:8px;align-items:end}.datebar>div{flex:1}
-.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.summary .stat{padding:12px}.miniMetric{padding:10px}.miniMetric b{font-size:20px}.metricTarget{margin-top:5px}.mealGroup{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:#fbfcfe}.mealGroup summary{cursor:pointer;list-style:none}.mealGroup summary::-webkit-details-marker{display:none}.mealGroup .row{padding:8px 0}.mealTotal{display:flex;align-items:center;justify-content:space-between;gap:8px}.mealActions{display:flex;gap:6px;align-items:center}.moreBtn{width:100%;margin-top:8px}.macroGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.macroCard{background:#f8fafc;border-radius:12px;padding:10px}.macroCard b{font-size:18px}@media(max-width:600px){.macroGrid{grid-template-columns:1fr}}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.summary .stat{padding:12px}.miniMetric{padding:10px}.miniMetric b{font-size:20px}.metricTarget{margin-top:5px}.mealGroup{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:#fbfcfe}.mealGroup summary{cursor:pointer;list-style:none}.mealGroup summary::-webkit-details-marker{display:none}.mealGroup .row{padding:8px 0}.mealTotal{display:flex;align-items:center;justify-content:space-between;gap:8px}.mealActions{display:flex;gap:6px;align-items:center}.moreBtn{width:100%;margin-top:8px}.mealChecklist{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.mealSlot{background:#f8fafc;border-radius:12px;padding:10px;border:1px solid var(--line)}.mealSlot.logged{border-color:#b7e1c5;background:#f2fbf5}.mealSlot .status{font-weight:bold;font-size:13px}.mealSlot .status.good{color:var(--g)}.mealSlot .status.muted{color:var(--muted)}.historyActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}@media(max-width:600px){.mealChecklist{grid-template-columns:1fr}}.macroGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.macroCard{background:#f8fafc;border-radius:12px;padding:10px}.macroCard b{font-size:18px}@media(max-width:600px){.macroGrid{grid-template-columns:1fr}}
 .good{color:#15753b}.bad{color:#b42318}.note{background:#f7f9fc;border-radius:10px;padding:10px;margin-top:8px}.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.calHead{font-size:11px;color:var(--muted);text-align:center;padding:4px}.calDay{min-height:58px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:6px;cursor:pointer}.calDay b{font-size:12px}.calDay .small{font-size:9px;margin-top:3px}.calDay.empty{background:transparent;border:0;cursor:default}.calDay.target{border-color:#72c28a;background:#f1fbf4}.calDay.logged{background:#fffaf0}.calDay.today{box-shadow:inset 0 0 0 2px var(--b2)}.macroBarRow{display:grid;grid-template-columns:72px 1fr 70px;gap:8px;align-items:center;margin:9px 0}.macroBarRow .bar{margin-top:0}.macroBarRow .small{text-align:right}@media(max-width:600px){.calDay{min-height:50px;padding:4px}.macroBarRow{grid-template-columns:62px 1fr 62px}}
 canvas{width:100%;height:220px;background:#fbfcfe;border-radius:12px}
 footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
@@ -77,6 +77,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="card">
 <h3>📅 History</h3>
 <div class="datebar"><div><label>Choose date</label><input id="histDate" type="date" onchange="renderHistoryDay()"></div></div>
+<div class="historyActions"><button class="secondary" onclick="copyPreviousDay()">↪ Copy previous day</button><button class="secondary" onclick="goAddCategory()">＋ Add food to this date</button></div>
 <div id="historyDay"></div>
 </div>
 <div class="card">
@@ -87,7 +88,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="stat"><b id="weekHigh">0</b><span class="small">Highest g</span></div>
 <div class="stat"><b id="weekLow">0</b><span class="small">Lowest g</span></div>
 </div>
-<div class="note small">Days with no entry are shown as 0 g. You can backfill them anytime using Add Food → Date.</div>
+<div class="note small">Meals are grouped by Breakfast, Mid-Morning, Lunch, Evening Snack, Post-Workout and Dinner so you can quickly see which parts of the day are logged. Days with no entry are shown as 0 g.</div>
 </div>
 <div class="card">
 <h3>Last 30 days</h3>
@@ -193,7 +194,7 @@ const B=[
 ["White chana (cooked)",8.9,164,2.6,27.4,7.6],["Green moong (cooked)",7,105,.4,18.7,7.6],["Rajma (cooked)",8.7,127,.5,22.8,6.4],
 ["Chana dal (cooked)",8.9,164,2.6,27.4,7.6],["Toor dal (cooked)",9,162,1,27.1,7.8],["Masoor dal (cooked)",9,116,.4,20.1,7.9],
 ["Moong dal (cooked)",7,105,.4,19,7],["Urad dal (cooked)",7,116,.5,20,7],["Roasted chana",18,360,5,60,10],
-["Peanuts",25.8,567,49.2,16.1,8.5],["Almonds",21.2,579,49.9,21.6,12.5],["Pumpkin seeds",30.2,559,49,10.7,6],
+["Peanuts",25.8,567,49.2,16.1,8.5],["Boiled peanuts",13.5,318,22.4,21.3,8.4],["Almonds",21.2,579,49.9,21.6,12.5],["Pumpkin seeds",30.2,559,49,10.7,6],
 ["Chia seeds",16.5,486,30.7,42.1,34.4],["Oats",12.5,389,6.9,66.3,10.1],["Muesli",11,380,6,68,7],
 ["Quinoa (cooked)",4.4,120,1.9,21.3,2.8],["Brown rice (cooked)",2.6,123,1,25.6,1.6],["White rice (cooked)",2.7,130,.3,28.2,.4],
 ["Chapati",9,297,4,50,11],["Idli",6,145,1,30,2],["Dosa",5.5,170,3.5,28,1],["Poha",2.5,110,3,18,2],
@@ -391,16 +392,48 @@ function showAllTodayFoods(){
 }
 function delMealGroup(idxs){getDay(todayKey());idxs.slice().sort((a,b)=>b-a).forEach(i=>getDay(todayKey()).splice(i,1));save();renderToday()}
 function delToday(i){getDay(todayKey()).splice(i,1);save();renderToday()}
+function goAddCategory(cat){
+ let d=histDate.value||todayKey(); selectedDate=d;
+ if(cat){meal.value=cat;}
+ tab('add',document.querySelector('.tabs button[onclick*="tab(\'add\'"]'));
+ if(cat) meal.value=cat;
+ addDate.value=d; opts();
+}
+function copyPreviousDay(){
+ const target=histDate.value||todayKey();
+ const dt=new Date(target+'T12:00:00'); dt.setDate(dt.getDate()-1);
+ const source=dt.toISOString().slice(0,10), src=getDay(source);
+ if(!src.length){alert('There are no foods logged on the previous day ('+source+').');return;}
+ const dest=getDay(target);
+ if(dest.length && !confirm('This date already has food entries. Add the previous day\'s entries to them?'))return;
+ const idMap={};
+ src.forEach(x=>{
+   const y=JSON.parse(JSON.stringify(x));
+   if(y.groupId){ if(!idMap[y.groupId]) idMap[y.groupId]='meal_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); y.groupId=idMap[x.groupId]; }
+   dest.push(y);
+ });
+ save(); selectedDate=target; renderHistoryDay(); renderHistorySummary();
+ alert('Copied '+src.length+' food entries from '+source+' to '+target+'.');
+}
 function renderHistoryDay(){
  let d=histDate.value||todayKey(),a=getDay(d),t=totals(a), target=S.p;
+ const cats=['Breakfast','Mid-Morning','Lunch','Evening Snack','Post-Workout','Dinner'];
+ const groups=cats.map(cat=>({cat,idxs:a.map((x,i)=>({x,i})).filter(z=>(z.x.meal||'Breakfast')===cat)}));
+ const logged=groups.filter(g=>g.idxs.length).length;
  historyDay.innerHTML=`<h4>${d}</h4><div class=summary>
  <div class=stat><b>${t.p.toFixed(1)} g</b><span class=small>Protein</span></div>
  <div class=stat><b>${Math.round(t.c)}</b><span class=small>Calories</span></div>
  <div class=stat><b class="${t.p>=target?'good':'bad'}">${t.p>=target?'✓ Target hit':'Below target'}</b><span class=small>Protein target</span></div>
- <div class=stat><b>${a.length}</b><span class=small>Food items</span></div></div>`;
- if(a.length){
-  historyDay.innerHTML+=a.map((x,i)=>{const p=Number(x.p)||0;const q=x.q??'';const u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${x.meal||''} • ${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i},"${d}")'>Modify</button> <button class=danger onclick='delHistory(${i},"${d}")'>×</button></div></div>`}).join("");
- }else historyDay.innerHTML+="<div class=note small>No entries for this date. You can backfill it from Add Food by selecting this date.</div>";
+ <div class=stat><b>${a.length}</b><span class=small>Food items</span></div></div>
+ <div class=card style="margin:10px 0 0;padding:12px;background:#fbfcfe"><b>🍽️ Meal checklist — ${logged}/${cats.length} logged</b><div class=small>Use this as a recording checklist; not every slot has to be part of your routine.</div><div class=mealChecklist>`+
+ groups.map(g=>`<div class="mealSlot ${g.idxs.length?'logged':''}"><b>${g.cat}</b><div class="status ${g.idxs.length?'good':'muted'}">${g.idxs.length?'✓ Logged':'○ Not logged'}</div>${g.idxs.length?`<div class=small>${g.idxs.length} item${g.idxs.length===1?'':'s'} • ${totals(g.idxs.map(z=>z.x)).p.toFixed(1)} g P</div>`:`<button class=secondary style="margin-top:6px" onclick='goAddCategory(${JSON.stringify(g.cat)})'>Add food</button>`}</div>`).join('')+
+ `</div></div>`;
+ if(!a.length){historyDay.innerHTML+="<div class=note small>No entries for this date. You can add food above or copy the previous day.</div>";return;}
+ historyDay.innerHTML+=groups.map(g=>{
+   const gt=totals(g.idxs.map(z=>z.x));
+   const rows=g.idxs.length?g.idxs.map(z=>{const x=z.x,i=z.i,p=Number(x.p)||0,q=x.q??'',u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i},"${d}")'>Modify</button> <button class=danger onclick='delHistory(${i},"${d}")'>×</button></div></div>`}).join(''):`<div class=note small>No foods logged</div>`;
+   return `<div class=mealGroup style="margin-top:12px"><div class=mealTotal><div><b>🍽️ ${g.cat}</b><div class=small>${g.idxs.length?g.idxs.length+' food '+(g.idxs.length===1?'item':'items'):'Not logged'}</div></div><div style="text-align:right"><span class=protein>${gt.p.toFixed(1)}g P</span>${g.idxs.length?`<div class=small>${Math.round(gt.c)} kcal</div>`:''}</div></div>${rows}</div>`;
+ }).join('');
 }
 function delHistory(i,d){getDay(d).splice(i,1);save();renderHistoryDay();renderHistorySummary()}
 function renderHistorySummary(){
