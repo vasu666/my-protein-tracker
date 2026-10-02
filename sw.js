@@ -1,4 +1,4 @@
-const VERSION='v30';
+const VERSION='v33';
 const CACHE=`pt-${VERSION}`;
 const APP_SHELL=['./','./index.html','./manifest.json','./icon.svg'];
 
@@ -30,7 +30,6 @@ self.addEventListener('fetch',event=>{
   const url=new URL(req.url);
   if(url.origin!==self.location.origin) return;
 
-  // HTML/navigation is network-first so GitHub Pages updates are picked up automatically.
   if(req.mode==='navigate' || url.pathname.endsWith('/index.html') || url.pathname.endsWith('/')){
     event.respondWith((async()=>{
       try{
@@ -46,7 +45,6 @@ self.addEventListener('fetch',event=>{
     return;
   }
 
-  // Other app-shell assets can use cache-first, with a network fallback.
   event.respondWith((async()=>{
     const cached=await caches.match(req);
     if(cached) return cached;
