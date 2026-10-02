@@ -677,6 +677,21 @@ function ensurePresetMeals(){
  save();
 }
 
+// PWA update helper: register the versioned service worker and let a new worker take over immediately.
+(function setupPwaUpdates(){
+  if(!('serviceWorker' in navigator)) return;
+  const SW_VERSION='v30';
+  let reloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(reloaded) return;
+    reloaded=true;
+    window.location.reload();
+  });
+  navigator.serviceWorker.register('./sw.js?v='+SW_VERSION,{updateViaCache:'none'}).then(reg=>{
+    reg.update().catch(()=>{});
+  }).catch(()=>{});
+})();
+
 ensurePresetMeals();ensureFoodIds();renderQuickFoods();sp.value=S.p;sc.value=S.c;sf.value=S.f;sfi.value=S.fi;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
 </script>
 </body></html>
