@@ -25,7 +25,7 @@ label{display:block;color:var(--muted);font-size:12px;margin:9px 0 5px}.grid{dis
 .danger{background:#fff0f0;color:#b42318;border:0;border-radius:8px;padding:7px 10px}.hidden{display:none}
 .quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}.quick button{border:1px solid var(--line);background:#fff;padding:11px;border-radius:11px;text-align:left}
 .datebar{display:flex;gap:8px;align-items:end}.datebar>div{flex:1}
-.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.summary .stat{padding:12px}.miniMetric{padding:10px}.miniMetric b{font-size:20px}.metricTarget{margin-top:5px}.mealGroup{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:#fbfcfe}.mealGroup summary{cursor:pointer;list-style:none}.mealGroup summary::-webkit-details-marker{display:none}.mealGroup .row{padding:8px 0}.mealTotal{display:flex;align-items:center;justify-content:space-between;gap:8px}.mealActions{display:flex;gap:6px;align-items:center}.moreBtn{width:100%;margin-top:8px}.mealChecklist{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.mealSlot{background:#f8fafc;border-radius:12px;padding:10px;border:1px solid var(--line)}.mealSlot.logged{border-color:#b7e1c5;background:#f2fbf5}.mealSlot .status{font-weight:bold;font-size:13px}.mealSlot .status.good{color:var(--g)}.mealSlot .status.muted{color:var(--muted)}.historyActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}@media(max-width:600px){.mealChecklist{grid-template-columns:1fr}}.macroGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.macroCard{background:#f8fafc;border-radius:12px;padding:10px}.macroCard b{font-size:18px}@media(max-width:600px){.macroGrid{grid-template-columns:1fr}}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.summary .stat{padding:12px}.miniMetric{padding:10px}.miniMetric b{font-size:20px}.metricTarget{margin-top:5px}.catSection{margin:12px 0 16px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff}.catHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:2px 0 8px;border-bottom:1px solid var(--line);margin-bottom:4px}.catSection .row{padding:9px 0}.mealGroup{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:#fbfcfe}.mealGroup summary{cursor:pointer;list-style:none}.mealGroup summary::-webkit-details-marker{display:none}.mealGroup .row{padding:8px 0}.mealTotal{display:flex;align-items:center;justify-content:space-between;gap:8px}.mealActions{display:flex;gap:6px;align-items:center}.moreBtn{width:100%;margin-top:8px}.mealChecklist{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.mealSlot{background:#f8fafc;border-radius:12px;padding:10px;border:1px solid var(--line)}.mealSlot.logged{border-color:#b7e1c5;background:#f2fbf5}.mealSlot .status{font-weight:bold;font-size:13px}.mealSlot .status.good{color:var(--g)}.mealSlot .status.muted{color:var(--muted)}.historyActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}@media(max-width:600px){.mealChecklist{grid-template-columns:1fr}}.macroGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.macroCard{background:#f8fafc;border-radius:12px;padding:10px}.macroCard b{font-size:18px}@media(max-width:600px){.macroGrid{grid-template-columns:1fr}}
 .good{color:#15753b}.bad{color:#b42318}.note{background:#f7f9fc;border-radius:10px;padding:10px;margin-top:8px}.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.calHead{font-size:11px;color:var(--muted);text-align:center;padding:4px}.calDay{min-height:58px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:6px;cursor:pointer}.calDay b{font-size:12px}.calDay .small{font-size:9px;margin-top:3px}.calDay.empty{background:transparent;border:0;cursor:default}.calDay.target{border-color:#72c28a;background:#f1fbf4}.calDay.logged{background:#fffaf0}.calDay.today{box-shadow:inset 0 0 0 2px var(--b2)}.macroBarRow{display:grid;grid-template-columns:72px 1fr 70px;gap:8px;align-items:center;margin:9px 0}.macroBarRow .bar{margin-top:0}.macroBarRow .small{text-align:right}@media(max-width:600px){.calDay{min-height:50px;padding:4px}.macroBarRow{grid-template-columns:62px 1fr 62px}}
 canvas{width:100%;height:220px;background:#fbfcfe;border-radius:12px}
 footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
@@ -57,7 +57,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="metric miniMetric"><div class="small">Items</div><b id="items">0</b><div class="small metricTarget">Food entries</div></div>
 </div>
 </div>
-<div class="card" id="dailyInsight"></div><div class="card" id="todayList"></div>
+<div class="card" id="proteinStreak"></div><div class="card" id="dailyInsight"></div><div class="card" id="todayList"></div>
 </section>
 
 <section id="add" class="hidden">
@@ -356,6 +356,42 @@ function totals(a){
   fiber:a.reduce((s,x)=>s+(+x.fiber||0),0)
  }
 }
+function dateOffsetKey(offset){ const d=new Date(); d.setDate(d.getDate()-offset); return dayKeyFromDate(d); }
+function proteinStreakInfo(){
+ const todayTotal=totals(getDay(todayKey())), todayHit=todayTotal.p>=S.p;
+ let streak=0;
+ const offset=todayHit?0:1;
+ for(let i=offset;i<365;i++){
+  const t=totals(getDay(dateOffsetKey(i)));
+  if(t.p>=S.p) streak++; else break;
+ }
+ let best=0,run=0;
+ for(let i=364;i>=0;i--){ const t=totals(getDay(dateOffsetKey(i))); if(t.p>=S.p){run++;best=Math.max(best,run)}else run=0; }
+ return {streak,best,todayTotal,todayHit,need:Math.max(0,S.p-todayTotal.p)};
+}
+function renderProteinStreak(){
+ const el=document.getElementById('proteinStreak'); if(!el) return;
+ const x=proteinStreakInfo(), pct=Math.min(100,(x.todayTotal.p/Math.max(S.p,1))*100);
+ let title,sub;
+ if(x.todayHit){
+   title=`🔥 ${x.streak}-day protein streak`;
+   sub=`Today is complete at <b>${x.todayTotal.p.toFixed(1)} g</b> — streak extended! Keep it going tomorrow.`;
+ } else if(x.streak>0 && x.todayTotal.p>0){
+   title=`🔥 ${x.streak}-day protein streak`;
+   sub=`You're <b>${x.need.toFixed(0)} g</b> away from ${S.p} g today. Reach the target to keep your streak alive.`;
+ } else if(x.streak>0){
+   title=`🔥 ${x.streak}-day protein streak`;
+   sub=`Your streak is alive. Log today's protein and reach <b>${S.p} g</b> to continue it.`;
+ } else if(x.todayTotal.p>0){
+   title=`💪 Start your protein streak`;
+   sub=`You're at <b>${x.todayTotal.p.toFixed(1)} g</b> today. Reach ${S.p} g to start a new streak.`;
+ } else {
+   title=`💪 Start your protein streak`;
+   sub=`Reach <b>${S.p} g protein</b> today to start a new streak.`;
+ }
+ el.innerHTML=`<h3 style="margin-bottom:6px">${title}</h3><div class="small">${sub}</div><div class="bar" style="margin-top:10px"><div class="fill" style="width:${pct}%"></div></div><div class="small" style="margin-top:5px">Today: ${x.todayTotal.p.toFixed(1)} / ${S.p} g protein • Best recent streak: ${x.best} day${x.best===1?'':'s'}</div>`;
+}
+
 function renderInsight(t){
  const parts=[];
  parts.push(t.p>=S.p?`🟢 Protein target reached (${t.p.toFixed(0)}/${S.p} g)`:`🟡 Protein ${Math.max(0,S.p-t.p).toFixed(0)} g remaining`);
@@ -370,30 +406,27 @@ function renderToday(){
  pt.textContent=t.p.toFixed(1)+" g";ct.textContent=Math.round(t.c)+" kcal";ptg.textContent="of "+S.p+" g";ctg.textContent="of "+S.c+" kcal";
  pb.style.width=Math.min(100,t.p/S.p*100)+"%";cb.style.width=Math.min(100,t.c/S.c*100)+"%";
  fat.textContent=t.f.toFixed(1)+" g";carb.textContent=t.carb.toFixed(1)+" g";fib.textContent=t.fiber.toFixed(1)+" g";items.textContent=a.length;
- fatBar.style.width=Math.min(100,t.f/Math.max(S.f,1)*100)+"%";fibBar.style.width=Math.min(100,t.fiber/Math.max(S.fi,1)*100)+"%";
+ fatBar.style.width=Math.min(100,t.f/Math.max(S.f,1)*100)+"%";fibBar.style.width=Math.min(100,t.fiber/Math.max(S.fi,1)*100)+"%"; renderProteinStreak();
  fatTargetText.textContent="of "+S.f+" g target";fibTargetText.textContent="of "+S.fi+" g target"; renderInsight(t);
- // Carbohydrate has no target in Settings yet, so its bar is informational only.
  carbBar.style.width=Math.min(100,t.carb/300*100)+"%";
- const groups=[],seen=new Set();
- a.forEach((x,i)=>{if(x.groupId){if(seen.has(x.groupId))return;seen.add(x.groupId);let idxs=[];a.forEach((y,j)=>{if(y.groupId===x.groupId)idxs.push(j)});groups.push({type:'meal',name:x.mealName||x.meal||'Saved meal',idxs});}else groups.push({type:'item',idxs:[i]})});
- const limit=8,shown=groups.slice(0,limit),hidden=groups.length-limit;
- const itemHtml=(i)=>{const x=a[i]||{},p=Number(x.p)||0,q=x.q??'',u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${x.meal||''} • ${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i})'>Modify</button> <button class=danger onclick='delToday(${i})'>×</button></div></div>`};
+ const cats=['Breakfast','Mid-Morning','Lunch','Evening Snack','Post-Workout','Dinner'];
+ const itemHtml=(i)=>{const x=a[i]||{},p=Number(x.p)||0,q=x.q??'',u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i})'>Modify</button> <button class=danger onclick='delToday(${i})'>×</button></div></div>`};
  const groupHtml=(g)=>{let rows=g.idxs.map(itemHtml).join(''),tt=totals(g.idxs.map(i=>a[i]));return `<details class=mealGroup><summary><div class=mealTotal><div><b>🍽️ ${g.name}</b><div class=small>${g.idxs.length} foods • tap to expand and modify quantities</div></div><div class=mealActions><span class=protein>${tt.p.toFixed(1)}g P</span><button class=danger onclick='event.preventDefault();delMealGroup(${JSON.stringify(g.idxs)})'>×</button></div></div></summary>${rows}</details>`};
- let html=`<h3>Today's food</h3>`;
- if(!a.length) html+=`<div class=small>No food added yet.</div>`;
- else {html+=shown.map(g=>g.type==='meal'?groupHtml(g):itemHtml(g.idxs[0])).join(''); if(hidden>0) html+=`<button id=showAllToday class=secondary onclick='showAllTodayFoods()' style='margin-top:10px'>Show all ${groups.length} entries</button>`;}
- todayList.innerHTML=html;
+ const categoryHtml=(cat)=>{
+   const idxs=a.map((x,i)=>({x,i})).filter(z=>(z.x.meal||'Breakfast')===cat).map(z=>z.i);
+   if(!idxs.length) return `<section class=catSection><div class=catHeader><div><b>${cat}</b><div class=small>Not logged</div></div><button class=secondary onclick='goAddCategory("${cat}")'>+ Add food</button></div></section>`;
+   const groups=[],seen=new Set();
+   idxs.forEach(i=>{const x=a[i];if(x.groupId){if(seen.has(x.groupId))return;seen.add(x.groupId);groups.push({type:'meal',name:x.mealName||x.meal||'Saved meal',idxs:idxs.filter(j=>a[j].groupId===x.groupId)});}else groups.push({type:'item',idxs:[i]});});
+   const tt=totals(idxs.map(i=>a[i]));
+   return `<section class=catSection><div class=catHeader><div><b>${cat}</b><div class=small>${idxs.length} food${idxs.length===1?'':'s'} • ${tt.p.toFixed(1)} g protein • ${Math.round(tt.c)} kcal</div></div><button class=secondary onclick='goAddCategory("${cat}")'>+ Add food</button></div>${groups.map(g=>g.type==='meal'?groupHtml(g):itemHtml(g.idxs[0])).join('')}</section>`;
+ };
+ todayList.innerHTML=`<h3>Today's food</h3>`+cats.map(categoryHtml).join('');
 }
-function showAllTodayFoods(){
- const a=getDay(todayKey()),groups=[],seen=new Set();a.forEach((x,i)=>{if(x.groupId){if(seen.has(x.groupId))return;seen.add(x.groupId);let idxs=[];a.forEach((y,j)=>{if(y.groupId===x.groupId)idxs.push(j)});groups.push({type:'meal',name:x.mealName||x.meal||'Saved meal',idxs});}else groups.push({type:'item',idxs:[i]})});
- const itemHtml=(i)=>{const x=a[i]||{},p=Number(x.p)||0,q=x.q??'',u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${x.meal||''} • ${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i})'>Modify</button> <button class=danger onclick='delToday(${i})'>×</button></div></div>`};
- const groupHtml=(g)=>{let tt=totals(g.idxs.map(i=>a[i]));return `<details class=mealGroup open><summary><div class=mealTotal><div><b>🍽️ ${g.name}</b><div class=small>${g.idxs.length} foods</div></div><div class=mealActions><span class=protein>${tt.p.toFixed(1)}g P</span><button class=danger onclick='event.preventDefault();delMealGroup(${JSON.stringify(g.idxs)})'>×</button></div></div></summary>${g.idxs.map(itemHtml).join('')}</details>`};
- todayList.innerHTML=`<h3>Today's food</h3>`+groups.map(g=>g.type==='meal'?groupHtml(g):itemHtml(g.idxs[0])).join('')+`<button class=secondary onclick='renderToday()' style='margin-top:10px'>Show fewer</button>`;
-}
+function showAllTodayFoods(){ renderToday(); }
 function delMealGroup(idxs){getDay(todayKey());idxs.slice().sort((a,b)=>b-a).forEach(i=>getDay(todayKey()).splice(i,1));save();renderToday()}
 function delToday(i){getDay(todayKey()).splice(i,1);save();renderToday()}
 function goAddCategory(cat){
- let d=histDate.value||todayKey(); selectedDate=d;
+ let d=document.getElementById('today')?.classList.contains('hidden') ? (histDate.value||todayKey()) : todayKey(); selectedDate=d;
  if(cat){meal.value=cat;}
  tab('add',document.querySelector('.tabs button[onclick*="tab(\'add\'"]'));
  if(cat) meal.value=cat;
