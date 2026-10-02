@@ -14,7 +14,7 @@ h1{margin:0;font-size:24px}.sub{font-size:12px;opacity:.9;margin-top:4px}.wrap{m
 .tabs{display:flex;gap:7px;overflow:auto;margin-bottom:12px}.tabs button{border:0;background:#e7edf5;padding:10px 13px;border-radius:20px;white-space:nowrap}.tabs .on{background:var(--b);color:#fff}
 .card{background:#fff;border-radius:16px;padding:15px;margin-bottom:12px;box-shadow:0 2px 9px #17203312}
 .dash{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:#f7f9fc;border-radius:13px;padding:12px}.metric b{font-size:22px}
-.bar{height:10px;background:#e7ecf3;border-radius:10px;overflow:hidden;margin-top:8px}.fill{height:100%;background:var(--g);width:0;border-radius:10px}
+.bar{height:10px;background:#e7ecf3;border-radius:10px;overflow:hidden;margin-top:8px}.fill{height:100%;background:var(--g);width:0;border-radius:10px;transition:width .25s ease,background .25s ease}.fill.fillGreen{background:#159447}.fill.fillYellow{background:#f79009}.fill.fillRed{background:#d92d20}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.stat{background:#f8fafc;padding:10px;border-radius:12px;text-align:center}.stat b{display:block;font-size:18px}
 .small{font-size:12px;color:var(--muted)}.chartWrap{background:#f8fafc;border-radius:13px;padding:12px;margin:12px 0;overflow:hidden}.chartSvg{width:100%;height:auto;display:block}.chartLabel{font-size:10px;fill:#667085}.chartValue{font-size:10px;fill:#172033;font-weight:bold}.chartGrid{stroke:#e4e7ec;stroke-width:1}.chartTarget{stroke:#d97706;stroke-width:2;stroke-dasharray:6 5}.chartLine{fill:none;stroke:#159447;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.chartDot{fill:#159447}.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.row:last-child{border:0}
 .meal{font-weight:bold;color:var(--b);margin-top:10px}.protein{color:var(--g);font-weight:bold}
@@ -52,7 +52,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 </div>
 <div class="dash" style="margin-top:10px">
 <div class="metric miniMetric"><div class="small">Fat</div><b id="fat">0 g</b><div class="bar"><div id="fatBar" class="fill"></div></div><div class="small metricTarget" id="fatTargetText"></div></div>
-<div class="metric miniMetric"><div class="small">Carbs</div><b id="carb">0 g</b><div class="bar"><div id="carbBar" class="fill"></div></div><div class="small metricTarget" id="carbTargetText">No target set</div></div>
+<div class="metric miniMetric"><div class="small">Carbs</div><b id="carb">0 g</b><div class="bar"><div id="carbBar" class="fill"></div></div><div class="small metricTarget" id="carbTargetText"></div></div>
 <div class="metric miniMetric"><div class="small">Fibre</div><b id="fib">0 g</b><div class="bar"><div id="fibBar" class="fill"></div></div><div class="small metricTarget" id="fibTargetText"></div></div>
 <div class="metric miniMetric"><div class="small">Items</div><b id="items">0</b><div class="small metricTarget">Food entries</div></div>
 </div>
@@ -175,8 +175,9 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="card"><h3>Targets</h3><label>Protein target g/day</label><input id="sp" type="number">
 <label>Calories target/day</label><input id="sc" type="number">
 <label>Fat target g/day</label><input id="sf" type="number" step="0.1">
+<label>Carbs target g/day</label><input id="sch" type="number" step="0.1">
 <label>Fibre target g/day</label><input id="sfi" type="number" step="0.1">
-<div class="small" style="margin-top:8px">Protein and calories use your existing targets. Fat and fibre defaults are editable examples (60 g and 25 g/day); adjust them to your preferred targets.</div>
+<div class="small" style="margin-top:8px">Protein and calories use your existing targets. Fat, carbs and fibre targets are editable. The default carbs target is 240 g/day.</div>
 <button class="primary" onclick="saveSettings()">Save targets</button></div>
 <div class="card"><h3>⭐ Favorites</h3><div class="small">Favorite foods appear in Quick add. Recently used foods are shown automatically.</div></div><div class="card"><h3>💾 Backup & Export</h3><div class="small">Keep a backup before clearing browser/app data. Restore brings back your foods, meals, favorites and history.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="secondary" onclick="backup()">⬇ Download backup</button><button class="secondary" onclick="document.getElementById("restoreFile").click()">⬆ Restore backup</button><button class="secondary" onclick="exportCSV()">📊 Export CSV</button></div><input id="restoreFile" type="file" accept="application/json,.json" style="display:none" onchange="restoreBackup(event)"><div class="small" id="backupStatus" style="margin-top:8px"></div></div>
 </section>
@@ -255,8 +256,8 @@ const B=[
 ["Chicken nuggets",15.0,296,18,18,1.5],
 ["Veg cheese nuggets",9.0,240,13,24,3]]
 
-let S=JSON.parse(localStorage.getItem("myPT")||'{"p":100,"c":1900,"f":60,"fi":25,"days":{},"custom":[],"meals":{}}');
-if(S.f==null)S.f=60; if(S.fi==null)S.fi=25; if(!Array.isArray(S.favorites))S.favorites=[]; if(!Array.isArray(S.recent))S.recent=[];
+let S=JSON.parse(localStorage.getItem("myPT")||'{"p":100,"c":1900,"f":60,"ch":240,"fi":25,"days":{},"custom":[],"meals":{}}');
+if(S.f==null)S.f=60; if(S.ch==null)S.ch=240; if(S.fi==null)S.fi=25; if(!Array.isArray(S.favorites))S.favorites=[]; if(!Array.isArray(S.recent))S.recent=[];
 const todayKey=()=>new Date().toISOString().slice(0,10);
 const getDay=(d)=>S.days[d]||(S.days[d]=[]);
 const arr=()=>B.concat(S.custom);
@@ -500,14 +501,25 @@ function normalizeMealCategories(){
  if(changed) save();
 }
 
+function progressClass(pct,mode){
+ pct=Number(pct)||0;
+ if(mode==='goal') return pct>=80?'fillGreen':pct>=50?'fillYellow':'fillRed';
+ return pct>100?'fillRed':pct>=80?'fillYellow':'fillGreen';
+}
+function setProgressBar(el,value,target,mode){
+ const pct=target>0?(value/target*100):0;
+ el.style.width=Math.min(100,Math.max(0,pct))+"%";
+ el.classList.remove('fillGreen','fillYellow','fillRed');
+ el.classList.add(progressClass(pct,mode));
+}
+
 function renderToday(){
  let a=getDay(todayKey()),t=totals(a);
  pt.textContent=t.p.toFixed(1)+" g";ct.textContent=Math.round(t.c)+" kcal";ptg.textContent="of "+S.p+" g";ctg.textContent="of "+S.c+" kcal";
- pb.style.width=Math.min(100,t.p/S.p*100)+"%";cb.style.width=Math.min(100,t.c/S.c*100)+"%";
+ setProgressBar(pb,t.p,S.p,'goal');setProgressBar(cb,t.c,S.c,'limit');
  fat.textContent=t.f.toFixed(1)+" g";carb.textContent=t.carb.toFixed(1)+" g";fib.textContent=t.fiber.toFixed(1)+" g";items.textContent=a.length;
- fatBar.style.width=Math.min(100,t.f/Math.max(S.f,1)*100)+"%";fibBar.style.width=Math.min(100,t.fiber/Math.max(S.fi,1)*100)+"%"; renderProteinStreak(); renderAchievements();
- fatTargetText.textContent="of "+S.f+" g target";fibTargetText.textContent="of "+S.fi+" g target"; renderInsight(t);
- carbBar.style.width=Math.min(100,t.carb/300*100)+"%";
+ setProgressBar(fatBar,t.f,Math.max(S.f,1),'limit');setProgressBar(fibBar,t.fiber,Math.max(S.fi,1),'goal');setProgressBar(carbBar,t.carb,Math.max(S.ch,1),'limit'); renderProteinStreak(); renderAchievements();
+ fatTargetText.textContent="of "+S.f+" g target";carbTargetText.textContent="of "+S.ch+" g target";fibTargetText.textContent="of "+S.fi+" g target"; renderInsight(t);
  const cats=['Breakfast / Mid-Morning','Lunch','Evening Snack','Dinner'];
  const itemHtml=(i)=>{const x=a[i]||{},p=Number(x.p)||0,q=x.q??'',u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i})'>Modify</button> <button class=danger onclick='delToday(${i})'>×</button></div></div>`};
  const groupHtml=(g)=>{let rows=g.idxs.map(itemHtml).join(''),tt=totals(g.idxs.map(i=>a[i]));return `<details class=mealGroup><summary><div class=mealTotal><div><b>🍽️ ${g.name}</b><div class=small>${g.idxs.length} foods • tap to expand and modify quantities</div></div><div class=mealActions><span class=protein>${tt.p.toFixed(1)}g P</span><button class=danger onclick='event.preventDefault();delMealGroup(${JSON.stringify(g.idxs)})'>×</button></div></div></summary>${rows}</details>`};
@@ -739,14 +751,14 @@ function addMeal(n){
  alert(added?`Added ${n} to ${targetDate} as ${category}.`: 'This saved meal has no valid food entries. Please save the meal again.');
 }
 
-function saveSettings(){S.p=+sp.value||100;S.c=+sc.value||1900;S.f=+sf.value||60;S.fi=+sfi.value||25;save();renderToday();alert("Targets saved")}
+function saveSettings(){S.p=+sp.value||100;S.c=+sc.value||1900;S.f=+sf.value||60;S.ch=+sch.value||240;S.fi=+sfi.value||25;save();renderToday();alert("Targets saved")}
 function backup(){
  S.backupVersion=2; S.foodIdVersion=1; ensureFoodIds(); S.lastBackup=new Date().toISOString(); save();
  let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:"application/json"}));a.download="my-protein-tracker-backup-"+todayKey()+".json";a.click(); backupStatus.textContent="Backup created: "+new Date().toLocaleString("en-IN");
 }
 function restoreBackup(ev){
  const file=ev.target.files?.[0]; if(!file)return;
- const r=new FileReader(); r.onload=()=>{try{const data=JSON.parse(r.result); if(!data||typeof data!=="object"||!data.days||!data.meals){throw new Error("Invalid backup");} if(!confirm("Restore this backup? Your current local tracker data will be replaced.")){ev.target.value="";return;} S=data; normalizeMealCategories(); if(S.f==null)S.f=60;if(S.fi==null)S.fi=25;if(!Array.isArray(S.favorites))S.favorites=[];if(!Array.isArray(S.recent))S.recent=[];save();sp.value=S.p;sc.value=S.c;sf.value=S.f;sfi.value=S.fi;opts();renderQuickFoods();renderToday();customList();mealUI();backupStatus.textContent="Backup restored: "+new Date().toLocaleString("en-IN");alert("Backup restored successfully");}catch(e){alert("Could not restore backup. Please choose a valid My Protein Tracker backup file.");}ev.target.value="";}; r.readAsText(file);
+ const r=new FileReader(); r.onload=()=>{try{const data=JSON.parse(r.result); if(!data||typeof data!=="object"||!data.days||!data.meals){throw new Error("Invalid backup");} if(!confirm("Restore this backup? Your current local tracker data will be replaced.")){ev.target.value="";return;} S=data; normalizeMealCategories(); if(S.f==null)S.f=60;if(S.ch==null)S.ch=240;if(S.fi==null)S.fi=25;if(!Array.isArray(S.favorites))S.favorites=[];if(!Array.isArray(S.recent))S.recent=[];save();sp.value=S.p;sc.value=S.c;sf.value=S.f;sch.value=S.ch;sfi.value=S.fi;opts();renderQuickFoods();renderToday();customList();mealUI();backupStatus.textContent="Backup restored: "+new Date().toLocaleString("en-IN");alert("Backup restored successfully");}catch(e){alert("Could not restore backup. Please choose a valid My Protein Tracker backup file.");}ev.target.value="";}; r.readAsText(file);
 }
 function csvCell(v){let s=String(v??"");return '"'+s.replaceAll('"','""')+'"'}
 function exportCSV(){
@@ -779,7 +791,7 @@ function ensurePresetMeals(){
 // PWA update helper: register the versioned service worker and let a new worker take over immediately.
 (function setupPwaUpdates(){
   if(!('serviceWorker' in navigator)) return;
-  const SW_VERSION='v32';
+  const SW_VERSION='v35';
   let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
     if(reloaded) return;
@@ -791,6 +803,6 @@ function ensurePresetMeals(){
   }).catch(()=>{});
 })();
 
-ensurePresetMeals();ensureFoodIds();normalizeMealCategories();renderQuickFoods();sp.value=S.p;sc.value=S.c;sf.value=S.f;sfi.value=S.fi;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
+ensurePresetMeals();ensureFoodIds();normalizeMealCategories();renderQuickFoods();sp.value=S.p;sc.value=S.c;sf.value=S.f;sch.value=S.ch;sfi.value=S.fi;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
 </script>
 </body></html>
