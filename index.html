@@ -26,7 +26,7 @@ label{display:block;color:var(--muted);font-size:12px;margin:9px 0 5px}.grid{dis
 .quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}.quick button{border:1px solid var(--line);background:#fff;padding:11px;border-radius:11px;text-align:left}
 .datebar{display:flex;gap:8px;align-items:end}.datebar>div{flex:1}
 .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.summary .stat{padding:12px}.miniMetric{padding:10px}.miniMetric b{font-size:20px}.metricTarget{margin-top:5px}.mealGroup{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:#fbfcfe}.mealGroup summary{cursor:pointer;list-style:none}.mealGroup summary::-webkit-details-marker{display:none}.mealGroup .row{padding:8px 0}.mealTotal{display:flex;align-items:center;justify-content:space-between;gap:8px}.mealActions{display:flex;gap:6px;align-items:center}.moreBtn{width:100%;margin-top:8px}.macroGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.macroCard{background:#f8fafc;border-radius:12px;padding:10px}.macroCard b{font-size:18px}@media(max-width:600px){.macroGrid{grid-template-columns:1fr}}
-.good{color:#15753b}.bad{color:#b42318}.note{background:#f7f9fc;border-radius:10px;padding:10px;margin-top:8px}
+.good{color:#15753b}.bad{color:#b42318}.note{background:#f7f9fc;border-radius:10px;padding:10px;margin-top:8px}.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.calHead{font-size:11px;color:var(--muted);text-align:center;padding:4px}.calDay{min-height:58px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:6px;cursor:pointer}.calDay b{font-size:12px}.calDay .small{font-size:9px;margin-top:3px}.calDay.empty{background:transparent;border:0;cursor:default}.calDay.target{border-color:#72c28a;background:#f1fbf4}.calDay.logged{background:#fffaf0}.calDay.today{box-shadow:inset 0 0 0 2px var(--b2)}.macroBarRow{display:grid;grid-template-columns:72px 1fr 70px;gap:8px;align-items:center;margin:9px 0}.macroBarRow .bar{margin-top:0}.macroBarRow .small{text-align:right}@media(max-width:600px){.calDay{min-height:50px;padding:4px}.macroBarRow{grid-template-columns:62px 1fr 62px}}
 canvas{width:100%;height:220px;background:#fbfcfe;border-radius:12px}
 footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 @media(max-width:600px){.stats,.summary{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}.dash{grid-template-columns:1fr 1fr}}
@@ -115,6 +115,10 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
   <div id="proteinChart"></div>
 </div>
 <div id="trendBars"></div>
+<div class="card" style="margin-top:12px;background:#fbfcfe"><h3>🎯 Average target progress</h3><div id="macroTrendBars"></div></div>
+</div>
+<div class="card">
+<h3>🗓️ Nutrition calendar</h3><div class="small">Tap a date to open that day in History. 🟢 = protein target reached, 🟡 = logged, ⚪ = no food logged.</div><div id="calNav" style="display:flex;justify-content:space-between;align-items:center;margin:10px 0"><button class="secondary" onclick="changeCalMonth(-1)">‹</button><b id="calTitle"></b><button class="secondary" onclick="changeCalMonth(1)">›</button></div><div id="nutritionCalendar"></div>
 </div>
 <div class="card">
 <h3>Cumulative protein</h3>
@@ -238,6 +242,7 @@ const save=()=>localStorage.setItem("myPT",JSON.stringify(S));
 let selectedDate=todayKey();
 let editing=null;
 let editingMealName=null;
+let calendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
 
 function tab(id,b){
  document.querySelectorAll("section").forEach(x=>x.classList.add("hidden"));
@@ -410,6 +415,23 @@ function renderProteinChart(periods){
  svg+=`</svg>`;
  el.innerHTML=svg;
 }
+function localKey(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+function changeCalMonth(delta){calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+delta,1);renderCalendar()}
+function openCalendarDay(key){selectedDate=key;document.querySelectorAll('.tabs button').forEach((x,i)=>x.classList.remove('on'));document.querySelectorAll('section').forEach(x=>x.classList.add('hidden'));document.getElementById('history').classList.remove('hidden');histDate.value=key;renderHistoryDay();renderHistorySummary();}
+function renderCalendar(){
+ const y=calendarMonth.getFullYear(),m=calendarMonth.getMonth();
+ calTitle.textContent=new Date(y,m,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+ const first=new Date(y,m,1),start=(first.getDay()+6)%7,last=new Date(y,m+1,0).getDate();
+ const heads=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; let html='<div class=calGrid>'+heads.map(h=>`<div class=calHead>${h}</div>`).join('');
+ for(let i=0;i<start;i++)html+='<div class="calDay empty"></div>';
+ const today=todayKey();
+ for(let d=1;d<=last;d++){
+   const key=localKey(y,m,d),a=getDay(key),t=totals(a),cls=t.p>=S.p?'target':(a.length?'logged':'');
+   const icon=t.p>=S.p?'🟢':(a.length?'🟡':'⚪');
+   html+=`<div class="calDay ${cls} ${key===today?'today':''}" onclick="openCalendarDay('${key}')"><b>${d}</b><div class=small>${icon} ${a.length?t.p.toFixed(0)+'g P':'No entry'}</div>${a.length?`<div class=small>${Math.round(t.c)} kcal</div>`:''}</div>`;
+ }
+ html+='</div>';nutritionCalendar.innerHTML=html;
+}
 function renderTrends(){
  let mode=trendPeriod.value, periods=[];
  if(mode==="weekly"){
@@ -443,6 +465,10 @@ function renderTrends(){
    let avgP=x.days?x.p/x.days:0; let pct=Math.min(100,avgP/S.p*100);
    return `<div class=row><div><b>${x.label}</b><div class=small>${x.days} logged days • ${x.hit} protein-target days</div></div><div style="min-width:48%;text-align:right"><b>${avgP.toFixed(0)} g P/day</b><div class=bar><div class=fill style="width:${pct}%"></div></div><div class=small>${x.days?Math.round(x.c/x.days):0} kcal • ${x.days?(x.f/x.days).toFixed(1):0} g fat • ${x.days?(x.fiber/x.days).toFixed(1):0} g fibre</div></div></div>`
  }).join("");
+ const ap=avg(totalP), ac=avg(totalC), af=avg(totalF), afi=avg(totalFiber);
+ const macroData=[['Protein',ap,S.p,'g'],['Calories',ac,S.c,'kcal'],['Fat',af,S.f,'g'],['Fibre',afi,S.fi,'g']];
+ macroTrendBars.innerHTML=macroData.map(([name,val,target,unit])=>{const pct=Math.min(100,target?val/target*100:0);return `<div class=macroBarRow><b>${name}</b><div class=bar><div class=fill style="width:${pct}%"></div></div><span class=small>${val.toFixed(unit==='kcal'?0:1)} / ${target} ${unit}</span></div>`}).join('');
+ renderCalendar();
  let running=0;
  cumRows.innerHTML=periods.map(x=>{running+=x.p;return `<div class=row><div><b>${x.label}</b><div class=small>Protein ${x.p.toFixed(0)} g • Carbs ${x.carb.toFixed(0)} g • Fat ${x.f.toFixed(0)} g • Fibre ${x.fiber.toFixed(0)} g</div></div><span class=protein>${running.toFixed(0)} g P cumulative</span></div>`}).join("");
  cumSummary.innerHTML=`Across the selected ${mode==="weekly"?"8-week":"12-month"} period, you've logged <b>${totalP.toFixed(0)} g</b> protein, <b>${Math.round(totalC)} kcal</b>, <b>${totalF.toFixed(0)} g</b> fat and <b>${totalFiber.toFixed(0)} g</b> fibre. Averages use logged days only.`;
