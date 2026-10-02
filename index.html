@@ -33,7 +33,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 </style>
 </head>
 <body>
-<header><h1>🥗 My Protein Tracker</h1><div class="sub">Indian foods + eggs + whey + non-veg • daily history tracker</div></header>
+<header><h1>🥗 My Protein Tracker</h1><div class="sub">Indian foods + eggs + whey + non-veg • smart daily tracker</div></header>
 <div class="wrap">
 <div class="tabs">
 <button class="on" onclick="tab('today',this)">Today</button>
@@ -57,7 +57,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="metric miniMetric"><div class="small">Items</div><b id="items">0</b><div class="small metricTarget">Food entries</div></div>
 </div>
 </div>
-<div class="card" id="todayList"></div>
+<div class="card" id="dailyInsight"></div><div class="card" id="todayList"></div>
 </section>
 
 <section id="add" class="hidden">
@@ -65,8 +65,8 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <label>Date</label><input id="addDate" type="date" onchange="setDateFromAdd()">
 <div class="small">You can select a past date to backfill a missed day. Household measures are approximate unless the food has a defined serving size.</div>
 <label>Meal</label><select id="meal"><option>Breakfast</option><option>Mid-Morning</option><option>Lunch</option><option>Evening Snack</option><option>Post-Workout</option><option>Dinner</option></select>
-<label>Search food</label><input id="search" oninput="opts()" placeholder="paneer, yogurt, burrito bowl...">
-<label>Food</label><select id="food" onchange="prev()"></select>
+<div class="card" style="margin:10px 0;padding:12px;background:#f8fafc"><b>⚡ Quick add</b><div id="quickFoods" class="quick" style="margin-top:8px"></div></div><label>Search food</label><input id="search" oninput="opts()" placeholder="paneer, yogurt, burrito bowl...">
+<label>Food</label><select id="food" onchange="prev()"></select><div style="display:flex;gap:8px;align-items:center;margin-top:8px"><button type="button" class="secondary" onclick="toggleFavoriteSelected()" id="favBtn">☆ Favorite</button><span class="small" id="favHint"></span></div>
 <label>Amount</label><div class="grid"><input id="qty" type="number" value="100" oninput="prev()"><select id="unit" onchange="prev()"><option value="g">g</option><option value="ml">ml</option><option value="tsp">teaspoon</option><option value="tbsp">tablespoon</option><option value="piece">piece</option><option value="bowl">bowl</option><option value="cup">cup</option><option value="serving">serving</option></select></div>
 <div class="small" id="unitHint"></div><div class="small" id="preview"></div>
 <button id="addAction" class="primary" onclick="addOrUpdate()">+ Add to selected date</button>
@@ -139,7 +139,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 </section>
 
 <section id="meals" class="hidden">
-<div class="card"><h3>Saved Meals</h3><div id="mealList"></div><hr>
+<div class="card"><h3>Saved Meals</h3><div class="small">Add a saved meal to today or any past date. Choose Breakfast, Lunch, Dinner or Snack so it appears correctly in your daily record.</div><div id="mealList"></div><hr>
 <label>Meal name</label><input id="mn" placeholder="My Breakfast">
 <label>Choose foods</label><select id="mfoods" multiple size="8"></select>
 <label>Multiplier</label><input id="mult" type="number" value="1" step=".1">
@@ -153,9 +153,9 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <label>Fibre target g/day</label><input id="sfi" type="number" step="0.1">
 <div class="small" style="margin-top:8px">Protein and calories use your existing targets. Fat and fibre defaults are editable examples (60 g and 25 g/day); adjust them to your preferred targets.</div>
 <button class="primary" onclick="saveSettings()">Save targets</button></div>
-<div class="card"><h3>Backup</h3><button class="secondary" onclick="backup()">Download backup</button></div>
+<div class="card"><h3>⭐ Favorites</h3><div class="small">Favorite foods appear in Quick add. Recently used foods are shown automatically.</div></div><div class="card"><h3>💾 Backup & Export</h3><div class="small">Keep a backup before clearing browser/app data. Restore brings back your foods, meals, favorites and history.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="secondary" onclick="backup()">⬇ Download backup</button><button class="secondary" onclick="document.getElementById("restoreFile").click()">⬆ Restore backup</button><button class="secondary" onclick="exportCSV()">📊 Export CSV</button></div><input id="restoreFile" type="file" accept="application/json,.json" style="display:none" onchange="restoreBackup(event)"><div class="small" id="backupStatus" style="margin-top:8px"></div></div>
 </section>
-<footer>History is stored by date on this device. Household measures are approximate; branded muesli and peanut-butter entries use the package labels you provided. Combo foods use 1 tbsp PB ≈ 15 g and standard portions. Backup regularly if you want protection against browser/app data being cleared.</footer>
+<footer>History is stored by date on this device. Household measures are approximate; branded muesli and peanut-butter entries use the package labels you provided. Combo foods use 1 tbsp PB ≈ 15 g and standard portions. Use Backup & Export in Settings to protect your history and export it to CSV.</footer>
 </div>
 
 <script>
@@ -217,10 +217,17 @@ const B=[
 ["Sweet corn on cob, boiled (medium, edible portion)",3.4,96,1.5,21,2.4],
 ["Black sesame coconut chutney",7,300,25,12,5],
 ["Egg bhurji (2 eggs + vegetables + 1 tsp oil)",14.5,220,15,4,1],
-["Paneer bhurji (100g paneer + vegetables + 1 tsp oil)",17,270,19,7,1.5]];
+["Paneer bhurji (100g paneer + vegetables + 1 tsp oil)",17,270,19,7,1.5],
+["Pomegranate arils",1.7,83,1.2,18.7,4.0],
+["Papaya",0.5,43,0.3,10.8,1.7],
+["Pineapple",0.5,50,0.1,13.1,1.4],
+["Green grapes",0.7,69,0.2,18.1,0.9],
+["Potato fry",2.5,180,8,27,3.5],
+["Ladies finger (okra)",1.9,33,0.2,7.5,3.2],
+["Palak with egg poriyal",7.5,110,7,4,2]]
 
 let S=JSON.parse(localStorage.getItem("myPT")||'{"p":100,"c":1900,"f":60,"fi":25,"days":{},"custom":[],"meals":{}}');
-if(S.f==null)S.f=60; if(S.fi==null)S.fi=25;
+if(S.f==null)S.f=60; if(S.fi==null)S.fi=25; if(!Array.isArray(S.favorites))S.favorites=[]; if(!Array.isArray(S.recent))S.recent=[];
 const todayKey=()=>new Date().toISOString().slice(0,10);
 const getDay=(d)=>S.days[d]||(S.days[d]=[]);
 const arr=()=>B.concat(S.custom);
@@ -240,7 +247,7 @@ function tab(id,b){
 }
 function setDateFromAdd(){selectedDate=addDate.value||todayKey()}
 const UNIT={
- 'My Whey - 30g protein scoop (45g label)':{serving:45},'My Whey - 25g protein scoop (36g label)':{serving:36},'Egg, whole':{piece:50},'Egg white':{piece:30},'Almonds':{piece:1.2},'Dates':{piece:7},'Chapati':{piece:40},'Idli':{piece:50},'Dosa':{piece:80},'Banana':{piece:100},'Banana - small':{piece:80},'Banana - medium':{piece:100},'Banana - large':{piece:120},'Apple':{piece:180},'Apple - small':{piece:150},'Apple - medium':{piece:180},'Apple - large':{piece:220},'Orange':{piece:130},'Orange - small':{piece:100},'Orange - medium':{piece:130},'Orange - large':{piece:180},'Guava':{piece:100},'Guava - small':{piece:80},'Guava - medium':{piece:120},'Guava - large':{piece:180},'Avocado':{piece:150},'Brown rice (cooked)':{bowl:180,cup:195},'White rice (cooked)':{bowl:180,cup:158},'Curd/yogurt':{bowl:200,cup:245},'Oats':{tbsp:6},'Muesli':{tbsp:8},'Yoga Bar Muesli 1 (label)':{tbsp:8},'Yoga Bar Muesli 2 - High Protein (label)':{tbsp:8},'My Muesli Mix (50:50 by weight)':{tbsp:8},'Mixed seeds':{tsp:5,tbsp:15},'Ghee':{tsp:5,tbsp:14},'Paneer':{bowl:150},'MyFitness Peanut Butter - Dark Chocolate':{tsp:5,tbsp:15},'Saffola Peanut Butter with Jaggery':{tsp:5,tbsp:15},'Multigrain bread (approx)':{piece:30},'Peanut Butter Multigrain Bread Toast (1 slice + 1 tbsp PB)':{serving:100},'Peanut Butter Chapati Roll (1 chapati + 1 tbsp PB)':{serving:100},'Buttermilk (200 ml)':{ml:1,serving:200},'Lemon juice - half lemon':{serving:30,ml:30},'Cinnamon powder - 1 pinch':{serving:0.5},'Honey - 1 tsp (5g)':{tsp:5},'WOW Apple Cider Vinegar - 15 ml':{ml:1,serving:15},'Plix ACV tablet':{piece:1},'Green tea - unsweetened 200 ml':{ml:1,serving:200},'Milky Mist Probiotic Greek Yogurt - label':{bowl:200,cup:245},'Jersey Super Soft Paneer - label':{bowl:150},'Milky Mist Briyas Tofu - label':{bowl:150},'Eggoz White Protein Rich Egg - label':{piece:50},'Egg Dosa (1 egg + 1 plain dosa)':{serving:130},'Steamed Idli':{piece:50},'Peanut chutney':{tbsp:15},'Coriander chutney':{tbsp:15},'Coconut chutney':{tbsp:15},'Toor dal sambar':{bowl:200,cup:240},'Moong dal tadka':{bowl:200,cup:240},'Sona/Kurnool rice (steamed/cooked)':{bowl:180,cup:158},'Egg curry (1 egg + gravy)':{serving:150},'Sweet corn on cob, boiled (medium, edible portion)':{piece:120},'Black sesame coconut chutney':{tbsp:15},'Egg bhurji (2 eggs + vegetables + 1 tsp oil)':{serving:140},'Paneer bhurji (100g paneer + vegetables + 1 tsp oil)':{serving:150},'Salad bowl (custom)':{bowl:300}
+ 'My Whey - 30g protein scoop (45g label)':{serving:45},'My Whey - 25g protein scoop (36g label)':{serving:36},'Egg, whole':{piece:50},'Egg white':{piece:30},'Almonds':{piece:1.2},'Dates':{piece:7},'Chapati':{piece:40},'Idli':{piece:50},'Dosa':{piece:80},'Banana':{piece:100},'Banana - small':{piece:80},'Banana - medium':{piece:100},'Banana - large':{piece:120},'Apple':{piece:180},'Apple - small':{piece:150},'Apple - medium':{piece:180},'Apple - large':{piece:220},'Orange':{piece:130},'Orange - small':{piece:100},'Orange - medium':{piece:130},'Orange - large':{piece:180},'Guava':{piece:100},'Guava - small':{piece:80},'Guava - medium':{piece:120},'Guava - large':{piece:180},'Avocado':{piece:150},'Brown rice (cooked)':{bowl:180,cup:195},'White rice (cooked)':{bowl:180,cup:158},'Curd/yogurt':{bowl:200,cup:245},'Oats':{tbsp:6},'Muesli':{tbsp:8},'Yoga Bar Muesli 1 (label)':{tbsp:8},'Yoga Bar Muesli 2 - High Protein (label)':{tbsp:8},'My Muesli Mix (50:50 by weight)':{tbsp:8},'Mixed seeds':{tsp:5,tbsp:15},'Ghee':{tsp:5,tbsp:14},'Paneer':{bowl:150},'MyFitness Peanut Butter - Dark Chocolate':{tsp:5,tbsp:15},'Saffola Peanut Butter with Jaggery':{tsp:5,tbsp:15},'Multigrain bread (approx)':{piece:30},'Peanut Butter Multigrain Bread Toast (1 slice + 1 tbsp PB)':{serving:100},'Peanut Butter Chapati Roll (1 chapati + 1 tbsp PB)':{serving:100},'Buttermilk (200 ml)':{ml:1,serving:200},'Lemon juice - half lemon':{serving:30,ml:30},'Cinnamon powder - 1 pinch':{serving:0.5},'Honey - 1 tsp (5g)':{tsp:5},'WOW Apple Cider Vinegar - 15 ml':{ml:1,serving:15},'Plix ACV tablet':{piece:1},'Green tea - unsweetened 200 ml':{ml:1,serving:200},'Milky Mist Probiotic Greek Yogurt - label':{bowl:200,cup:245},'Jersey Super Soft Paneer - label':{bowl:150},'Milky Mist Briyas Tofu - label':{bowl:150},'Eggoz White Protein Rich Egg - label':{piece:50},'Egg Dosa (1 egg + 1 plain dosa)':{serving:130},'Steamed Idli':{piece:50},'Peanut chutney':{tbsp:15},'Coriander chutney':{tbsp:15},'Coconut chutney':{tbsp:15},'Toor dal sambar':{bowl:200,cup:240},'Moong dal tadka':{bowl:200,cup:240},'Sona/Kurnool rice (steamed/cooked)':{bowl:180,cup:158},'Egg curry (1 egg + gravy)':{serving:150},'Sweet corn on cob, boiled (medium, edible portion)':{piece:120},'Black sesame coconut chutney':{tbsp:15},'Egg bhurji (2 eggs + vegetables + 1 tsp oil)':{serving:140},'Paneer bhurji (100g paneer + vegetables + 1 tsp oil)':{serving:150},'Salad bowl (custom)':{bowl:300},'Pomegranate arils':{bowl:150,cup:174,piece:174},'Papaya':{bowl:250,cup:145},'Pineapple':{bowl:250,cup:165},'Green grapes':{bowl:150,cup:150,piece:5},'Potato fry':{bowl:180,cup:160},'Ladies finger (okra)':{bowl:150,cup:130},'Palak with egg poriyal':{bowl:200,cup:180}
 };
 function gramsFor(f,q,u){
  let g=q;
@@ -257,15 +264,26 @@ function gramsFor(f,q,u){
 function unitText(f,u){
  if(u==='g') return 'grams'; if(u==='ml') return 'ml'; if(u==='tsp') return '≈ '+(f[7]||5)+' g/tsp'; if(u==='tbsp') return '≈ '+(f[8]||15)+' g/tbsp'; if(u==='piece') return '≈ '+(f[9]||f[6]||50)+' g/piece'; if(u==='bowl') return '≈ '+(f[10]||250)+' g/bowl'; if(u==='cup') return '≈ '+(f[11]||180)+' g/cup'; return '≈ '+(f[12]||100)+' g/serving';
 }
+function renderQuickFoods(){
+ const fav=S.favorites.map(n=>arr().findIndex(f=>f[0]===n)).filter(i=>i>=0);
+ const recent=S.recent.map(n=>arr().findIndex(f=>f[0]===n)).filter(i=>i>=0 && !fav.includes(i));
+ const ids=[...fav,...recent].slice(0,8);
+ quickFoods.innerHTML=ids.length?ids.map(i=>{let n=arr()[i][0];return `<button type=button onclick="quickSelect(${i})"><b>${S.favorites.includes(n)?'⭐ ':''}${n}</b><div class=small>${S.favorites.includes(n)?'Favorite':'Recently used'}</div></button>`}).join(''):'<div class=small>No favorites yet. Add foods to start building your quick list.</div>';
+}
+function quickSelect(i){ search.value=''; opts(); food.value=i; prev(); }
+function updateFavButton(){ const n=arr()[+food.value]?.[0]; if(!n)return; const on=S.favorites.includes(n); favBtn.textContent=on?'★ Favorite':'☆ Favorite'; favHint.textContent=on?'Saved as favorite':''; }
+function toggleFavoriteSelected(){ const n=arr()[+food.value]?.[0]; if(!n)return; const i=S.favorites.indexOf(n); if(i>=0)S.favorites.splice(i,1);else S.favorites.push(n); save(); updateFavButton(); renderQuickFoods(); }
+function markRecent(n){ S.recent=[n,...S.recent.filter(x=>x!==n)].slice(0,12); }
 function opts(){
  let q=(search.value||'').toLowerCase(), s=food; s.innerHTML='';
- arr().forEach((x,i)=>{if(x[0].toLowerCase().includes(q)){let o=document.createElement('option');o.value=i;o.text=x[0];s.add(o)}});prev()
+ arr().forEach((x,i)=>{if(x[0].toLowerCase().includes(q)){let o=document.createElement('option');o.value=i;o.text=x[0];s.add(o)}}); if(s.options.length) s.selectedIndex=0; prev(); updateFavButton(); renderQuickFoods();
 }
 function prev(){let f=arr()[+food.value||0],q=+qty.value||0,u=unit.value||'g';if(!f)return;let g=gramsFor(f,q,u);unitHint.textContent=unitText(f,u);preview.textContent=(f[1]*g/100).toFixed(1)+' g protein • '+Math.round(f[2]*g/100)+' kcal • '+(f[5]*g/100).toFixed(1)+' g fibre'}
 function addOrUpdate(){
  let f=arr()[+food.value],q=+qty.value||0,u=unit.value||'g',d=selectedDate||todayKey();
  if(!q||!f){alert('Choose a food and amount.');return}
  let g=gramsFor(f,q,u),entry={meal:meal.value,name:f[0],q,unit:u,g,p:(+f[1]||0)*g/100,c:(+f[2]||0)*g/100,f:(+f[3]||0)*g/100,carb:(+f[4]||0)*g/100,fiber:(+f[5]||0)*g/100};
+ markRecent(f[0]);
  if(editing){
    let a=getDay(editing.d);
    if(a[editing.i])a[editing.i]=entry;
@@ -281,12 +299,20 @@ function resetAddAction(){addAction.textContent='+ Add to selected date';}
 function modifyToday(i,d=todayKey()){
  let a=getDay(d),x=a[i]; if(!x)return;
  selectedDate=d; editing={i,d};
- addDate.value=d; meal.value=x.meal||'Breakfast'; search.value=''; opts();
+ // Switch to Add Food first. tab('add') refreshes the food list, so set the
+ // selected food/quantity only after that refresh; otherwise it resets to the first food.
+ let addBtn=document.querySelector('.tabs button:nth-child(2)');
+ tab('add',addBtn);
+ addDate.value=d;
+ meal.value=x.meal||'Breakfast';
+ search.value='';
+ opts();
  let idx=arr().findIndex(f=>f[0]===x.name);
- if(idx>=0){food.value=idx; prev();}else{food.value='';}
- qty.value=x.q??''; unit.value=x.unit||'g'; prev();
+ if(idx>=0) food.value=idx;
+ qty.value=x.q??'';
+ unit.value=x.unit||'g';
+ prev();
  addAction.textContent='✓ Update food';
- let addBtn=document.querySelector('.tabs button:nth-child(2)');tab('add',addBtn);
 }
 function cancelEdit(){editing=null;resetAddAction();}
 
@@ -299,17 +325,26 @@ function totals(a){
   fiber:a.reduce((s,x)=>s+(+x.fiber||0),0)
  }
 }
+function renderInsight(t){
+ const parts=[];
+ parts.push(t.p>=S.p?`🟢 Protein target reached (${t.p.toFixed(0)}/${S.p} g)`:`🟡 Protein ${Math.max(0,S.p-t.p).toFixed(0)} g remaining`);
+ parts.push(t.c<=S.c?`Calories remaining: ${Math.max(0,S.c-t.c).toFixed(0)} kcal`:`🔴 Calories ${Math.max(0,t.c-S.c).toFixed(0)} kcal over target`);
+ parts.push(t.fiber>=S.fi?`🟢 Fibre target reached`:`Fibre: ${Math.max(0,S.fi-t.fiber).toFixed(1)} g remaining`);
+ parts.push(t.f<=S.f?`Fat: ${Math.max(0,S.f-t.f).toFixed(1)} g remaining`:`🟠 Fat ${Math.max(0,t.f-S.f).toFixed(1)} g over target`);
+ dailyInsight.innerHTML=`<h3>💡 Today's insight</h3><div class=small>${parts.join(' • ')}</div>`;
+}
+
 function renderToday(){
  let a=getDay(todayKey()),t=totals(a);
  pt.textContent=t.p.toFixed(1)+" g";ct.textContent=Math.round(t.c)+" kcal";ptg.textContent="of "+S.p+" g";ctg.textContent="of "+S.c+" kcal";
  pb.style.width=Math.min(100,t.p/S.p*100)+"%";cb.style.width=Math.min(100,t.c/S.c*100)+"%";
  fat.textContent=t.f.toFixed(1)+" g";carb.textContent=t.carb.toFixed(1)+" g";fib.textContent=t.fiber.toFixed(1)+" g";items.textContent=a.length;
  fatBar.style.width=Math.min(100,t.f/Math.max(S.f,1)*100)+"%";fibBar.style.width=Math.min(100,t.fiber/Math.max(S.fi,1)*100)+"%";
- fatTargetText.textContent="of "+S.f+" g target";fibTargetText.textContent="of "+S.fi+" g target";
+ fatTargetText.textContent="of "+S.f+" g target";fibTargetText.textContent="of "+S.fi+" g target"; renderInsight(t);
  // Carbohydrate has no target in Settings yet, so its bar is informational only.
  carbBar.style.width=Math.min(100,t.carb/300*100)+"%";
  const groups=[],seen=new Set();
- a.forEach((x,i)=>{if(x.groupId){if(seen.has(x.groupId))return;seen.add(x.groupId);let idxs=[];a.forEach((y,j)=>{if(y.groupId===x.groupId)idxs.push(j)});groups.push({type:'meal',name:x.meal||'Saved meal',idxs});}else groups.push({type:'item',idxs:[i]})});
+ a.forEach((x,i)=>{if(x.groupId){if(seen.has(x.groupId))return;seen.add(x.groupId);let idxs=[];a.forEach((y,j)=>{if(y.groupId===x.groupId)idxs.push(j)});groups.push({type:'meal',name:x.mealName||x.meal||'Saved meal',idxs});}else groups.push({type:'item',idxs:[i]})});
  const limit=8,shown=groups.slice(0,limit),hidden=groups.length-limit;
  const itemHtml=(i)=>{const x=a[i]||{},p=Number(x.p)||0,q=x.q??'',u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${x.meal||''} • ${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i})'>Modify</button> <button class=danger onclick='delToday(${i})'>×</button></div></div>`};
  const groupHtml=(g)=>{let rows=g.idxs.map(itemHtml).join(''),tt=totals(g.idxs.map(i=>a[i]));return `<details class=mealGroup><summary><div class=mealTotal><div><b>🍽️ ${g.name}</b><div class=small>${g.idxs.length} foods • tap to expand and modify quantities</div></div><div class=mealActions><span class=protein>${tt.p.toFixed(1)}g P</span><button class=danger onclick='event.preventDefault();delMealGroup(${JSON.stringify(g.idxs)})'>×</button></div></div></summary>${rows}</details>`};
@@ -319,7 +354,7 @@ function renderToday(){
  todayList.innerHTML=html;
 }
 function showAllTodayFoods(){
- const a=getDay(todayKey()),groups=[],seen=new Set();a.forEach((x,i)=>{if(x.groupId){if(seen.has(x.groupId))return;seen.add(x.groupId);let idxs=[];a.forEach((y,j)=>{if(y.groupId===x.groupId)idxs.push(j)});groups.push({type:'meal',name:x.meal||'Saved meal',idxs});}else groups.push({type:'item',idxs:[i]})});
+ const a=getDay(todayKey()),groups=[],seen=new Set();a.forEach((x,i)=>{if(x.groupId){if(seen.has(x.groupId))return;seen.add(x.groupId);let idxs=[];a.forEach((y,j)=>{if(y.groupId===x.groupId)idxs.push(j)});groups.push({type:'meal',name:x.mealName||x.meal||'Saved meal',idxs});}else groups.push({type:'item',idxs:[i]})});
  const itemHtml=(i)=>{const x=a[i]||{},p=Number(x.p)||0,q=x.q??'',u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${x.meal||''} • ${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i})'>Modify</button> <button class=danger onclick='delToday(${i})'>×</button></div></div>`};
  const groupHtml=(g)=>{let tt=totals(g.idxs.map(i=>a[i]));return `<details class=mealGroup open><summary><div class=mealTotal><div><b>🍽️ ${g.name}</b><div class=small>${g.idxs.length} foods</div></div><div class=mealActions><span class=protein>${tt.p.toFixed(1)}g P</span><button class=danger onclick='event.preventDefault();delMealGroup(${JSON.stringify(g.idxs)})'>×</button></div></div></summary>${g.idxs.map(itemHtml).join('')}</details>`};
  todayList.innerHTML=`<h3>Today's food</h3>`+groups.map(g=>g.type==='meal'?groupHtml(g):itemHtml(g.idxs[0])).join('')+`<button class=secondary onclick='renderToday()' style='margin-top:10px'>Show fewer</button>`;
@@ -414,8 +449,15 @@ function saveFood(){
 function customList(){document.getElementById("customList").innerHTML=S.custom.length?S.custom.map((x,i)=>`<div class=row><div><b>${x[0]}</b><div class=small>${x[1].toFixed(1)}g protein • ${Math.round(x[2])} kcal • ${x[5]?x[5].toFixed(1):"0"}g fibre /100g</div></div><button class=danger onclick='S.custom.splice(${i},1);save();customList()'>Delete</button></div>`).join(""):"<div class=small>No custom foods yet.</div>"}
 function mealUI(){
  mfoods.innerHTML=arr().map((x,i)=>`<option value=${i}>${x[0]}</option>`).join("");
- mealList.innerHTML=Object.keys(S.meals).map(n=>`<div class=row><b>${n}</b><button class=primary onclick="addMeal('${n.replaceAll("'","\\'")}')">Add</button></div>`).join("")||"<div class=small>No saved meals yet.</div>"
+ mealList.innerHTML=Object.keys(S.meals).map(n=>{let safe=n.replaceAll("'","\\'");return `<div class=row><b>${n}</b><button class=primary onclick="showAddMealOptions('${safe}')">Add</button></div>`}).join("")||"<div class=small>No saved meals yet.</div>";
 }
+function showAddMealOptions(n){
+ let box=document.getElementById('mealAddOptions');
+ if(!box){box=document.createElement('div');box.id='mealAddOptions';box.className='card';document.getElementById('meals').appendChild(box);}
+ box.innerHTML=`<h3>Add <b>${n}</b></h3><label>Date</label><input id="mealAddDate" type="date" value="${selectedDate||todayKey()}"><label>Category</label><select id="mealAddCat"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select><button class="primary" onclick="addMeal('${n.replaceAll("'","\\'")}')">✓ Add meal</button><button class="secondary" onclick="document.getElementById('mealAddOptions').remove()">Cancel</button>`;
+ box.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
 function mealFoodNames(m){
  if(Array.isArray(m.names)&&m.names.length)return m.names;
  if(Array.isArray(m.ids))return m.ids.map(i=>arr()[i]).filter(Boolean).map(f=>f[0]);
@@ -430,23 +472,42 @@ function saveMeal(){
 }
 function addMeal(n){
  let m=S.meals[n]; if(!m)return;
- let names=mealFoodNames(m),day=getDay(todayKey()),added=0,groupId='meal_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+ let names=mealFoodNames(m);
+ let targetDate=(document.getElementById('mealAddDate')?.value)||selectedDate||todayKey();
+ let category=(document.getElementById('mealAddCat')?.value)||'Breakfast';
+ let day=getDay(targetDate),added=0,groupId='meal_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
  names.forEach((name,k)=>{
    let f=arr().find(x=>x[0]===name); if(!f)return;
    let q=(m.qs&&m.qs[k]!=null)?+m.qs[k]:(100*(+m.m||1));
    let u=(m.units&&m.units[k])||'g'; if(!q||!Number.isFinite(q))return;
    let g=gramsFor(f,q,u); if(!Number.isFinite(g))return;
-   day.push({groupId,meal:n,name:f[0],q,unit:u,g,p:(+f[1]||0)*g/100,c:(+f[2]||0)*g/100,f:(+f[3]||0)*g/100,carb:(+f[4]||0)*g/100,fiber:(+f[5]||0)*g/100});
+   day.push({groupId,meal:category,mealName:n,name:f[0],q,unit:u,g,p:(+f[1]||0)*g/100,c:(+f[2]||0)*g/100,f:(+f[3]||0)*g/100,carb:(+f[4]||0)*g/100,fiber:(+f[5]||0)*g/100});
    added++;
  });
- if(m.extraGhee){let f=arr().find(x=>x[0]==='Ghee');if(f){let q=+m.extraGhee;day.push({groupId,meal:n,name:'Ghee',q,unit:'g',g:q,p:0,c:(+f[2]||0)*q/100,f:(+f[3]||0)*q/100,carb:0,fiber:0});added++}}
+ if(m.extraGhee){let f=arr().find(x=>x[0]==='Ghee');if(f){let q=+m.extraGhee;day.push({groupId,meal:category,mealName:n,name:'Ghee',q,unit:'g',g:q,p:0,c:(+f[2]||0)*q/100,f:(+f[3]||0)*q/100,carb:0,fiber:0});added++;}}
  if(!m.names&&names.length)m.names=names;
- save();renderToday();
- if(!added)alert('This saved meal has no valid food entries. Please save the meal again.');
+ save();selectedDate=targetDate;
+ if(targetDate===todayKey())renderToday();
+ if(document.getElementById('mealAddOptions'))document.getElementById('mealAddOptions').remove();
+ alert(added?`Added ${n} to ${targetDate} as ${category}.`: 'This saved meal has no valid food entries. Please save the meal again.');
 }
 
 function saveSettings(){S.p=+sp.value||100;S.c=+sc.value||1900;S.f=+sf.value||60;S.fi=+sfi.value||25;save();renderToday();alert("Targets saved")}
-function backup(){let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="my-protein-tracker-backup.json";a.click()}
+function backup(){
+ S.backupVersion=1; S.lastBackup=new Date().toISOString(); save();
+ let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:"application/json"}));a.download="my-protein-tracker-backup-"+todayKey()+".json";a.click(); backupStatus.textContent="Backup created: "+new Date().toLocaleString("en-IN");
+}
+function restoreBackup(ev){
+ const file=ev.target.files?.[0]; if(!file)return;
+ const r=new FileReader(); r.onload=()=>{try{const data=JSON.parse(r.result); if(!data||typeof data!=="object"||!data.days||!data.meals){throw new Error("Invalid backup");} if(!confirm("Restore this backup? Your current local tracker data will be replaced.")){ev.target.value="";return;} S=data; if(S.f==null)S.f=60;if(S.fi==null)S.fi=25;if(!Array.isArray(S.favorites))S.favorites=[];if(!Array.isArray(S.recent))S.recent=[];save();sp.value=S.p;sc.value=S.c;sf.value=S.f;sfi.value=S.fi;opts();renderQuickFoods();renderToday();customList();mealUI();backupStatus.textContent="Backup restored: "+new Date().toLocaleString("en-IN");alert("Backup restored successfully");}catch(e){alert("Could not restore backup. Please choose a valid My Protein Tracker backup file.");}ev.target.value="";}; r.readAsText(file);
+}
+function csvCell(v){let s=String(v??"");return '"'+s.replaceAll('"','""')+'"'}
+function exportCSV(){
+ const rows=[["Date","Meal","Meal group","Food","Amount","Unit","Protein (g)","Calories","Fat (g)","Carbs (g)","Fibre (g)"]];
+ Object.keys(S.days).sort().forEach(d=>S.days[d].forEach(x=>rows.push([d,x.meal||"",x.mealName||"",x.name||"",x.q??"",x.unit||"g",Number(x.p||0).toFixed(2),Number(x.c||0).toFixed(2),Number(x.f||0).toFixed(2),Number(x.carb||0).toFixed(2),Number(x.fiber||0).toFixed(2)])));
+ const csv=rows.map(r=>r.map(csvCell).join(",")).join("\n"); let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="my-protein-tracker-history.csv";a.click();
+}
+
 function ensurePresetMeals(){
  const setPreset=(name,names,qs,units,extraGhee,notes)=>{
    const valid=names.filter(n=>arr().some(f=>f[0]===n));
@@ -468,6 +529,6 @@ function ensurePresetMeals(){
  save();
 }
 
-ensurePresetMeals();sp.value=S.p;sc.value=S.c;sf.value=S.f;sfi.value=S.fi;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
+ensurePresetMeals();renderQuickFoods();sp.value=S.p;sc.value=S.c;sf.value=S.f;sfi.value=S.fi;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
 </script>
 </body></html>
