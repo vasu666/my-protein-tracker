@@ -25,7 +25,7 @@ label{display:block;color:var(--muted);font-size:12px;margin:9px 0 5px}.grid{dis
 .danger{background:#fff0f0;color:#b42318;border:0;border-radius:8px;padding:7px 10px}.hidden{display:none}
 .quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}.quick button{border:1px solid var(--line);background:#fff;padding:11px;border-radius:11px;text-align:left}
 .datebar{display:flex;gap:8px;align-items:end}.datebar>div{flex:1}
-.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.summary .stat{padding:12px}.miniMetric{padding:10px}.miniMetric b{font-size:20px}.metricTarget{margin-top:5px}.mealGroup{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:#fbfcfe}.mealGroup summary{cursor:pointer;list-style:none}.mealGroup summary::-webkit-details-marker{display:none}.mealGroup .row{padding:8px 0}.mealTotal{display:flex;align-items:center;justify-content:space-between;gap:8px}.mealActions{display:flex;gap:6px;align-items:center}.moreBtn{width:100%;margin-top:8px}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.summary .stat{padding:12px}.miniMetric{padding:10px}.miniMetric b{font-size:20px}.metricTarget{margin-top:5px}.mealGroup{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:#fbfcfe}.mealGroup summary{cursor:pointer;list-style:none}.mealGroup summary::-webkit-details-marker{display:none}.mealGroup .row{padding:8px 0}.mealTotal{display:flex;align-items:center;justify-content:space-between;gap:8px}.mealActions{display:flex;gap:6px;align-items:center}.moreBtn{width:100%;margin-top:8px}.macroGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.macroCard{background:#f8fafc;border-radius:12px;padding:10px}.macroCard b{font-size:18px}@media(max-width:600px){.macroGrid{grid-template-columns:1fr}}
 .good{color:#15753b}.bad{color:#b42318}.note{background:#f7f9fc;border-radius:10px;padding:10px;margin-top:8px}
 canvas{width:100%;height:220px;background:#fbfcfe;border-radius:12px}
 footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
@@ -107,8 +107,9 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 </select>
 </div>
 <div class="card">
-<h3 id="trendTitle">Weekly protein</h3>
+<h3 id="trendTitle">Weekly nutrition</h3>
 <div id="trendSummary" class="summary"></div>
+<div id="trendInsight" class="note"></div>
 <div class="chartWrap">
   <div class="small" style="margin-bottom:6px">Average daily protein on logged days vs 100 g target</div>
   <div id="proteinChart"></div>
@@ -141,9 +142,11 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <section id="meals" class="hidden">
 <div class="card"><h3>Saved Meals</h3><div class="small">Add a saved meal to today or any past date. Choose Breakfast, Lunch, Dinner or Snack so it appears correctly in your daily record.</div><div id="mealList"></div><hr>
 <label>Meal name</label><input id="mn" placeholder="My Breakfast">
-<label>Choose foods</label><select id="mfoods" multiple size="8"></select>
+<label>Choose foods</label><select id="mfoods" multiple size="8" onchange="renderMealQtyEditor()"></select>
 <label>Multiplier</label><input id="mult" type="number" value="1" step=".1">
-<button class="primary" onclick="saveMeal()">Save meal</button></div>
+<div id="mealQtyEditor" class="note small" style="margin-top:8px">Select foods above to set the default quantity for each ingredient.</div>
+<label>Extra ghee (g, optional)</label><input id="mealExtraGhee" type="number" step="0.1" value="0">
+<button class="primary" onclick="saveMeal()">Save meal</button><button id="mealCancelEdit" class="secondary hidden" onclick="cancelMealEdit()">Cancel recipe edit</button></div>
 </section>
 
 <section id="settings" class="hidden">
@@ -234,6 +237,7 @@ const arr=()=>B.concat(S.custom);
 const save=()=>localStorage.setItem("myPT",JSON.stringify(S));
 let selectedDate=todayKey();
 let editing=null;
+let editingMealName=null;
 
 function tab(id,b){
  document.querySelectorAll("section").forEach(x=>x.classList.add("hidden"));
@@ -282,7 +286,7 @@ function prev(){let f=arr()[+food.value||0],q=+qty.value||0,u=unit.value||'g';if
 function addOrUpdate(){
  let f=arr()[+food.value],q=+qty.value||0,u=unit.value||'g',d=selectedDate||todayKey();
  if(!q||!f){alert('Choose a food and amount.');return}
- let g=gramsFor(f,q,u),entry={meal:meal.value,name:f[0],q,unit:u,g,p:(+f[1]||0)*g/100,c:(+f[2]||0)*g/100,f:(+f[3]||0)*g/100,carb:(+f[4]||0)*g/100,fiber:(+f[5]||0)*g/100};
+ let oldEntry=editing?getDay(editing.d)[editing.i]:null; let g=gramsFor(f,q,u),entry={meal:meal.value,name:f[0],q,unit:u,g,p:(+f[1]||0)*g/100,c:(+f[2]||0)*g/100,f:(+f[3]||0)*g/100,carb:(+f[4]||0)*g/100,fiber:(+f[5]||0)*g/100}; if(oldEntry?.groupId){entry.groupId=oldEntry.groupId;entry.mealName=oldEntry.mealName||'';}
  markRecent(f[0]);
  if(editing){
    let a=getDay(editing.d);
@@ -400,7 +404,7 @@ function renderProteinChart(periods){
  let svg=`<svg class="chartSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Protein trend chart">`;
  grid.forEach(v=>{let yy=y(v);svg+=`<line class="chartGrid" x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}"/><text class="chartLabel" x="${L-7}" y="${yy+3}" text-anchor="end">${Math.round(v)}g</text>`});
  svg+=`<line class="chartTarget" x1="${L}" y1="${targetY}" x2="${W-R}" y2="${targetY}"/>`;
- svg+=`<text class="chartLabel" x="${W-R}" y="${Math.max(11,targetY-6)}" text-anchor="end">100 g target</text>`;
+ svg+=`<text class="chartLabel" x="${W-R}" y="${Math.max(11,targetY-6)}" text-anchor="end">${S.p} g target</text>`;
  if(vals.length>1)svg+=`<polyline class="chartLine" points="${pts}"/>`;
  vals.forEach((v,i)=>{let xx=x(i),yy=y(v);svg+=`<circle class="chartDot" cx="${xx}" cy="${yy}" r="4"/><text class="chartValue" x="${xx}" y="${Math.max(12,yy-9)}" text-anchor="middle">${v.toFixed(0)}g</text><text class="chartLabel" x="${xx}" y="${H-17}" text-anchor="middle">${periods[i].label}</text>`});
  svg+=`</svg>`;
@@ -409,52 +413,46 @@ function renderProteinChart(periods){
 function renderTrends(){
  let mode=trendPeriod.value, periods=[];
  if(mode==="weekly"){
-  for(let i=7;i>=0;i--){let d=new Date();d.setDate(d.getDate()-i*7);let ws=weekStart(d);let we=new Date(ws);we.setDate(we.getDate()+6);let p=0,c=0,days=0,hit=0;
-   for(let j=0;j<7;j++){let x=new Date(ws);x.setDate(x.getDate()+j);let a=getDay(dayKeyFromDate(x)),t=totals(a);p+=t.p;c+=t.c;if(t.p>0)days++;if(t.p>=S.p)hit++}
-   periods.push({label:ws.toLocaleDateString("en-IN",{day:"numeric",month:"short"}),p,c,days,hit})
+  for(let i=7;i>=0;i--){let d=new Date();d.setDate(d.getDate()-i*7);let ws=weekStart(d);let p=0,c=0,f=0,carb=0,fiber=0,days=0,hit=0;
+   for(let j=0;j<7;j++){let x=new Date(ws);x.setDate(x.getDate()+j);let a=getDay(dayKeyFromDate(x)),t=totals(a);p+=t.p;c+=t.c;f+=t.f;carb+=t.carb;fiber+=t.fiber;if(t.p>0)days++;if(t.p>=S.p)hit++}
+   periods.push({label:ws.toLocaleDateString("en-IN",{day:"numeric",month:"short"}),p,c,f,carb,fiber,days,hit})
   }
  }else{
-  for(let i=11;i>=0;i--){let d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);let y=d.getFullYear(),m=d.getMonth(),p=0,c=0,days=0,hit=0;
+  for(let i=11;i>=0;i--){let d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);let y=d.getFullYear(),m=d.getMonth(),p=0,c=0,f=0,carb=0,fiber=0,days=0,hit=0;
    let last=new Date(y,m+1,0).getDate();
-   for(let j=1;j<=last;j++){let x=new Date(y,m,j),a=getDay(dayKeyFromDate(x)),t=totals(a);p+=t.p;c+=t.c;if(t.p>0)days++;if(t.p>=S.p)hit++}
-   periods.push({label:d.toLocaleDateString("en-IN",{month:"short",year:"numeric"}),p,c,days,hit})
+   for(let j=1;j<=last;j++){let x=new Date(y,m,j),a=getDay(dayKeyFromDate(x)),t=totals(a);p+=t.p;c+=t.c;f+=t.f;carb+=t.carb;fiber+=t.fiber;if(t.p>0)days++;if(t.p>=S.p)hit++}
+   periods.push({label:d.toLocaleDateString("en-IN",{month:"short",year:"numeric"}),p,c,f,carb,fiber,days,hit})
   }
  }
- let totalP=periods.reduce((s,x)=>s+x.p,0), totalC=periods.reduce((s,x)=>s+x.c,0), avgDay=periods.reduce((s,x)=>s+x.days,0);
- let totalDays=mode==="weekly"?56:365;
- let targetDays=periods.reduce((s,x)=>s+x.hit,0);
- trendTitle.textContent=(mode==="weekly"?"Weekly":"Monthly")+" protein";
+ let totalP=periods.reduce((s,x)=>s+x.p,0), totalC=periods.reduce((s,x)=>s+x.c,0), totalF=periods.reduce((s,x)=>s+x.f,0), totalCarb=periods.reduce((s,x)=>s+x.carb,0), totalFiber=periods.reduce((s,x)=>s+x.fiber,0), logged=periods.reduce((s,x)=>s+x.days,0), targetDays=periods.reduce((s,x)=>s+x.hit,0);
+ const avg=(v)=>v/Math.max(logged,1);
+ trendTitle.textContent=(mode==="weekly"?"Weekly":"Monthly")+" nutrition";
  trendSummary.innerHTML=[
-  `<div class=stat><b>${totalP.toFixed(0)} g</b><span class=small>Cumulative protein</span></div>`,
-  `<div class=stat><b>${(totalP/Math.max(avgDay,1)).toFixed(1)} g</b><span class=small>Avg on logged days</span></div>`,
-  `<div class=stat><b>${targetDays}</b><span class=small>Days ≥ ${S.p} g</span></div>`,
-  `<div class=stat><b>${Math.round(totalC)}</b><span class=small>Cumulative kcal</span></div>`
+  `<div class=stat><b>${avg(totalP).toFixed(1)} g</b><span class=small>Avg protein/day</span></div>`,
+  `<div class=stat><b>${Math.round(avg(totalC))}</b><span class=small>Avg kcal/day</span></div>`,
+  `<div class=stat><b>${avg(totalF).toFixed(1)} g</b><span class=small>Avg fat/day</span></div>`,
+  `<div class=stat><b>${avg(totalFiber).toFixed(1)} g</b><span class=small>Avg fibre/day</span></div>`
  ].join("");
+ let insight=[];
+ if(avg(totalP)>=S.p) insight.push(`🟢 Average protein is ${avg(totalP).toFixed(0)} g/day, above your ${S.p} g target.`); else insight.push(`🟡 Average protein is ${avg(totalP).toFixed(0)} g/day, about ${(S.p-avg(totalP)).toFixed(0)} g below your target.`);
+ if(avg(totalFiber)>=S.fi) insight.push(`Fibre average is ${avg(totalFiber).toFixed(1)} g/day, meeting your ${S.fi} g target.`); else insight.push(`Fibre average is ${avg(totalFiber).toFixed(1)} g/day; about ${(S.fi-avg(totalFiber)).toFixed(1)} g/day remains to reach target.`);
+ insight.push(`${logged} logged days • ${targetDays} days reached the protein target.`);
+ trendInsight.innerHTML=insight.join(' • ');
  renderProteinChart(periods);
  trendBars.innerHTML=periods.map(x=>{
-   let avg=x.days?x.p/x.days:0;
-   let pct=Math.min(100,avg/S.p*100);
-   return `<div class=row><div><b>${x.label}</b><div class=small>${x.days} logged days • ${x.hit} target days</div></div><div style="min-width:48%;text-align:right"><b>${x.p.toFixed(0)} g</b><div class=bar><div class=fill style="width:${pct}%"></div></div><div class=small>${avg.toFixed(1)} g/day logged</div></div></div>`
+   let avgP=x.days?x.p/x.days:0; let pct=Math.min(100,avgP/S.p*100);
+   return `<div class=row><div><b>${x.label}</b><div class=small>${x.days} logged days • ${x.hit} protein-target days</div></div><div style="min-width:48%;text-align:right"><b>${avgP.toFixed(0)} g P/day</b><div class=bar><div class=fill style="width:${pct}%"></div></div><div class=small>${x.days?Math.round(x.c/x.days):0} kcal • ${x.days?(x.f/x.days).toFixed(1):0} g fat • ${x.days?(x.fiber/x.days).toFixed(1):0} g fibre</div></div></div>`
  }).join("");
  let running=0;
- cumRows.innerHTML=periods.map(x=>{running+=x.p;return `<div class=row><div><b>${x.label}</b><div class=small>Period protein: ${x.p.toFixed(0)} g</div></div><span class=protein>${running.toFixed(0)} g cumulative</span></div>`}).join("");
- cumSummary.innerHTML=`Across the selected ${mode==="weekly"?"8-week":"12-month"} period, you've logged <b>${totalP.toFixed(0)} g</b> protein and <b>${Math.round(totalC)} kcal</b>. The cumulative number is the running total of your logged entries; missed days can be backfilled later.`;
+ cumRows.innerHTML=periods.map(x=>{running+=x.p;return `<div class=row><div><b>${x.label}</b><div class=small>Protein ${x.p.toFixed(0)} g • Carbs ${x.carb.toFixed(0)} g • Fat ${x.f.toFixed(0)} g • Fibre ${x.fiber.toFixed(0)} g</div></div><span class=protein>${running.toFixed(0)} g P cumulative</span></div>`}).join("");
+ cumSummary.innerHTML=`Across the selected ${mode==="weekly"?"8-week":"12-month"} period, you've logged <b>${totalP.toFixed(0)} g</b> protein, <b>${Math.round(totalC)} kcal</b>, <b>${totalF.toFixed(0)} g</b> fat and <b>${totalFiber.toFixed(0)} g</b> fibre. Averages use logged days only.`;
 }
 
-function saveFood(){
- let n=cn.value.trim(),q=+cq.value,p=+cp.value,k=+ck.value,f=+cf.value||0,ch=+ch.value||0,fi=+cfi.value||0;
- if(!n||!q||!p||!k){alert("Enter name, reference amount, protein and calories.");return}
- S.custom.push([n,p*100/q,k*100/q,f*100/q,ch*100/q,fi*100/q]);save();cn.value="";customList();alert("Added to My Foods")
-}
-function customList(){document.getElementById("customList").innerHTML=S.custom.length?S.custom.map((x,i)=>`<div class=row><div><b>${x[0]}</b><div class=small>${x[1].toFixed(1)}g protein • ${Math.round(x[2])} kcal • ${x[5]?x[5].toFixed(1):"0"}g fibre /100g</div></div><button class=danger onclick='S.custom.splice(${i},1);save();customList()'>Delete</button></div>`).join(""):"<div class=small>No custom foods yet.</div>"}
-function mealUI(){
- mfoods.innerHTML=arr().map((x,i)=>`<option value=${i}>${x[0]}</option>`).join("");
- mealList.innerHTML=Object.keys(S.meals).map(n=>{let safe=n.replaceAll("'","\\'");return `<div class=row><b>${n}</b><button class=primary onclick="showAddMealOptions('${safe}')">Add</button></div>`}).join("")||"<div class=small>No saved meals yet.</div>";
-}
 function showAddMealOptions(n){
  let box=document.getElementById('mealAddOptions');
  if(!box){box=document.createElement('div');box.id='mealAddOptions';box.className='card';document.getElementById('meals').appendChild(box);}
- box.innerHTML=`<h3>Add <b>${n}</b></h3><label>Date</label><input id="mealAddDate" type="date" value="${selectedDate||todayKey()}"><label>Category</label><select id="mealAddCat"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select><button class="primary" onclick="addMeal('${n.replaceAll("'","\\'")}')">✓ Add meal</button><button class="secondary" onclick="document.getElementById('mealAddOptions').remove()">Cancel</button>`;
+ const safe=JSON.stringify(n).replaceAll('"','&quot;');
+ box.innerHTML=`<h3>Add <b>${n}</b></h3><label>Date</label><input id="mealAddDate" type="date" value="${selectedDate||todayKey()}"><label>Category</label><select id="mealAddCat"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select><button class="primary" onclick="addMeal(${safe})">✓ Add meal</button><button class="secondary" onclick="document.getElementById('mealAddOptions').remove()">Cancel</button>`;
  box.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
@@ -463,29 +461,44 @@ function mealFoodNames(m){
  if(Array.isArray(m.ids))return m.ids.map(i=>arr()[i]).filter(Boolean).map(f=>f[0]);
  return [];
 }
+function editSavedMeal(n){
+ const m=S.meals[n]; if(!m)return;
+ editingMealName=n; mn.value=n; mult.value=m.m||1; mealExtraGhee.value=m.extraGhee||0;
+ const wanted=(m.names||[]).length?m.names:(m.foodIds||[]).map(foodNameFromId).filter(Boolean); [...mfoods.options].forEach(o=>o.selected=wanted.includes(o.text));
+ renderMealQtyEditor();
+ document.getElementById('mealCancelEdit').classList.remove('hidden');
+ document.querySelector('#meals .card:last-of-type')?.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function cancelMealEdit(){
+ editingMealName=null; mn.value=''; mult.value=1; mealExtraGhee.value=0; [...mfoods.options].forEach(o=>o.selected=false); renderMealQtyEditor(); document.getElementById('mealCancelEdit').classList.add('hidden');
+}
 function saveMeal(){
  let n=mn.value.trim(),ids=[...mfoods.selectedOptions].map(o=>+o.value),m=+mult.value||1;
- if(!n||!ids.length)return alert("Enter a name and choose foods.");
- let names=ids.map(i=>arr()[i]).filter(Boolean).map(f=>f[0]);
- S.meals[n]={names,m};
- save();mealUI();alert("Saved meal")
+ if(!n||!ids.length)return alert('Enter a name and choose foods.');
+ const qtyEls=[...document.querySelectorAll('.mealQty')],unitEls=[...document.querySelectorAll('.mealUnit')];
+ const names=ids.map(i=>arr()[i]).filter(Boolean).map(f=>f[0]);
+ const qs=names.map(name=>{const el=qtyEls.find(e=>e.dataset.name===name);return el?+el.value:100});
+ const units=names.map(name=>{const qi=qtyEls.findIndex(e=>e.dataset.name===name);return unitEls[qi]?.value||'g'});
+ if(editingMealName&&editingMealName!==n) delete S.meals[editingMealName];
+ S.meals[n]={names,foodIds:names.map(x=>S.foodIds?.[x]||hashId(x)),qs,units,m,extraGhee:+mealExtraGhee.value||0};
+ const wasEditing=!!editingMealName; save(); mealUI(); cancelMealEdit(); alert(wasEditing?'Saved meal recipe updated':'Saved meal created');
 }
 function addMeal(n){
  let m=S.meals[n]; if(!m)return;
- let names=mealFoodNames(m);
+ let names=(m.foodIds||[]).map(foodNameFromId).filter(Boolean); if(!names.length)names=mealFoodNames(m);
  let targetDate=(document.getElementById('mealAddDate')?.value)||selectedDate||todayKey();
  let category=(document.getElementById('mealAddCat')?.value)||'Breakfast';
  let day=getDay(targetDate),added=0,groupId='meal_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
  names.forEach((name,k)=>{
    let f=arr().find(x=>x[0]===name); if(!f)return;
-   let q=(m.qs&&m.qs[k]!=null)?+m.qs[k]:(100*(+m.m||1));
+   let baseQ=(m.qs&&m.qs[k]!=null)?+m.qs[k]:100;
+   let q=baseQ*(+m.m||1);
    let u=(m.units&&m.units[k])||'g'; if(!q||!Number.isFinite(q))return;
    let g=gramsFor(f,q,u); if(!Number.isFinite(g))return;
    day.push({groupId,meal:category,mealName:n,name:f[0],q,unit:u,g,p:(+f[1]||0)*g/100,c:(+f[2]||0)*g/100,f:(+f[3]||0)*g/100,carb:(+f[4]||0)*g/100,fiber:(+f[5]||0)*g/100});
    added++;
  });
- if(m.extraGhee){let f=arr().find(x=>x[0]==='Ghee');if(f){let q=+m.extraGhee;day.push({groupId,meal:category,mealName:n,name:'Ghee',q,unit:'g',g:q,p:0,c:(+f[2]||0)*q/100,f:(+f[3]||0)*q/100,carb:0,fiber:0});added++;}}
- if(!m.names&&names.length)m.names=names;
+ if(m.extraGhee){let f=arr().find(x=>x[0]==='Ghee');if(f){let q=+m.extraGhee*(+m.m||1);day.push({groupId,meal:category,mealName:n,name:'Ghee',q,unit:'g',g:q,p:0,c:(+f[2]||0)*q/100,f:(+f[3]||0)*q/100,carb:0,fiber:0});added++;}}
  save();selectedDate=targetDate;
  if(targetDate===todayKey())renderToday();
  if(document.getElementById('mealAddOptions'))document.getElementById('mealAddOptions').remove();
@@ -494,7 +507,7 @@ function addMeal(n){
 
 function saveSettings(){S.p=+sp.value||100;S.c=+sc.value||1900;S.f=+sf.value||60;S.fi=+sfi.value||25;save();renderToday();alert("Targets saved")}
 function backup(){
- S.backupVersion=1; S.lastBackup=new Date().toISOString(); save();
+ S.backupVersion=2; S.foodIdVersion=1; ensureFoodIds(); S.lastBackup=new Date().toISOString(); save();
  let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:"application/json"}));a.download="my-protein-tracker-backup-"+todayKey()+".json";a.click(); backupStatus.textContent="Backup created: "+new Date().toLocaleString("en-IN");
 }
 function restoreBackup(ev){
@@ -516,7 +529,7 @@ function ensurePresetMeals(){
    if(units)m.units=valid.map(n=>units[names.indexOf(n)]);
    if(extraGhee)m.extraGhee=extraGhee;
    if(notes)m.notes=notes;
-   S.meals[name]=m;
+   if(!S.meals[name]) S.meals[name]=m;
  };
  setPreset('5 Overnight Soaked Almonds',['Almonds'],[5],['piece'],0,'5 overnight-soaked almonds.');
  setPreset('Morning Warm Water Routine',['Chia seeds','Lemon juice - half lemon','Cinnamon powder - 1 pinch','Honey - 1 tsp (5g)'],[5,1,1,1],['g','serving','serving','tsp'],0,'Warm water itself is not counted.');
@@ -529,6 +542,6 @@ function ensurePresetMeals(){
  save();
 }
 
-ensurePresetMeals();renderQuickFoods();sp.value=S.p;sc.value=S.c;sf.value=S.f;sfi.value=S.fi;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
+ensurePresetMeals();ensureFoodIds();renderQuickFoods();sp.value=S.p;sc.value=S.c;sf.value=S.f;sfi.value=S.fi;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
 </script>
 </body></html>
