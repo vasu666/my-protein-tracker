@@ -121,6 +121,23 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <h3>🗓️ Nutrition calendar</h3><div class="small">Tap a date to open that day in History. 🟢 = protein target reached, 🟡 = logged, ⚪ = no food logged.</div><div id="calNav" style="display:flex;justify-content:space-between;align-items:center;margin:10px 0"><button class="secondary" onclick="changeCalMonth(-1)">‹</button><b id="calTitle"></b><button class="secondary" onclick="changeCalMonth(1)">›</button></div><div id="nutritionCalendar"></div>
 </div>
 <div class="card">
+<h3>🧠 Your nutrition insights</h3>
+<div class="small">Insights are calculated from the foods and meals you have actually logged in the selected period.</div>
+<div id="smartInsights" class="macroGrid" style="margin-top:10px"></div>
+</div>
+<div class="card">
+<h3>🔥 Your most-used foods</h3>
+<div id="topFoods"></div>
+</div>
+<div class="card">
+<h3>🍽️ Your protein-dense meals</h3>
+<div id="topMeals"></div>
+</div>
+<div class="card">
+<h3>📅 Consistency</h3>
+<div id="consistencyInsights" class="note"></div>
+</div>
+<div class="card">
 <h3>Cumulative protein</h3>
 <div id="cumSummary" class="note"></div>
 <div id="cumRows"></div>
@@ -432,6 +449,27 @@ function renderCalendar(){
  }
  html+='</div>';nutritionCalendar.innerHTML=html;
 }
+function periodDateSet(mode){
+ let set=new Set();
+ if(mode==='weekly'){for(let i=0;i<56;i++){let d=new Date();d.setDate(d.getDate()-i);set.add(dayKeyFromDate(d));}}
+ else {let now=new Date();let start=new Date(now.getFullYear(),now.getMonth()-11,1);for(let d=new Date(start);d<=now;d.setDate(d.getDate()+1))set.add(dayKeyFromDate(d));}
+ return set;
+}
+function renderSmartInsights(mode){
+ const keys=periodDateSet(mode), foodCounts={}, mealAgg={}, mealDays={}, macroTotals={p:0,c:0,f:0,fiber:0}, loggedDays=[];
+ [...keys].forEach(d=>{const a=getDay(d); if(a.length){loggedDays.push(d); const t=totals(a); macroTotals.p+=t.p;macroTotals.c+=t.c;macroTotals.f+=t.f;macroTotals.fiber+=t.fiber;} a.forEach(x=>{const n=x.name||'Unknown'; foodCounts[n]=(foodCounts[n]||0)+1; if(x.mealName){const m=x.mealName; if(!mealAgg[m])mealAgg[m]={p:0,c:0,count:0};mealAgg[m].p+=+x.p||0;mealAgg[m].c+=+x.c||0;mealAgg[m].count++;mealDays[m]=(mealDays[m]||new Set());mealDays[m].add(d);}});});
+ const ld=Math.max(loggedDays.length,1), ap=macroTotals.p/ld, ac=macroTotals.c/ld, af=macroTotals.f/ld, afi=macroTotals.fiber/ld;
+ const short=[['Protein',ap,S.p,'g'],['Calories',ac,S.c,'kcal'],['Fat',af,S.f,'g'],['Fibre',afi,S.fi,'g']].map(x=>({name:x[0],avg:x[1],target:x[2],unit:x[3],diff:x[1]-x[2]}));
+ const shortText=short.map(x=>x.diff<0?`${x.name}: ${Math.abs(x.diff).toFixed(x.unit==='kcal'?0:1)} ${x.unit} below target`:x.diff>0?`${x.name}: ${x.diff.toFixed(x.unit==='kcal'?0:1)} ${x.unit} above target`:`${x.name}: on target`).join(' • ');
+ smartInsights.innerHTML=`<div class=macroCard><b>${ld}</b><div class=small>Logged days</div></div><div class=macroCard><b>${ap.toFixed(1)} g</b><div class=small>Avg protein/day</div></div><div class=macroCard><b>${af.toFixed(1)} g</b><div class=small>Avg fat/day</div></div><div class=macroCard><b>${afi.toFixed(1)} g</b><div class=small>Avg fibre/day</div></div><div class=note style="grid-column:1/-1">${shortText||'Keep logging meals to build personalized insights.'}</div>`;
+ const foods=Object.entries(foodCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+ topFoods.innerHTML=foods.length?foods.map((x,i)=>`<div class=row><div><b>${i+1}. ${x[0]}</b><div class=small>${x[1]} logged ${x[1]===1?'time':'times'}</div></div></div>`).join(''):'<div class=note small>No food history in this period yet.</div>';
+ const meals=Object.entries(mealAgg).map(([n,v])=>({n,p:v.p/Math.max(mealDays[n]?.size||1,1),days:mealDays[n]?.size||1,count:v.count})).sort((a,b)=>b.p-a.p).slice(0,5);
+ topMeals.innerHTML=meals.length?meals.map((x,i)=>`<div class=row><div><b>${i+1}. ${x.n}</b><div class=small>${x.days} day${x.days===1?'':'s'} • ${x.count} ingredient entries</div></div><span class=protein>${x.p.toFixed(1)} g P/day</span></div>`).join(''):'<div class=note small>Add saved meals to see meal-level insights.</div>';
+ let current=0,best=0; const sorted=Object.keys(S.days).filter(d=>keys.has(d)).sort(); for(const d of sorted){const t=totals(getDay(d));if(t.p>=S.p){current++;best=Math.max(best,current)}else current=0;}
+ let streak=0;for(let i=0;i<365;i++){let d=new Date();d.setDate(d.getDate()-i);const t=totals(getDay(dayKeyFromDate(d)));if(t.p>=S.p)streak++;else break;}
+ consistencyInsights.innerHTML=`Current protein-target streak: <b>${streak} day${streak===1?'':'s'}</b> • Best streak in selected period: <b>${best} day${best===1?'':'s'}</b> • ${loggedDays.length?`You've logged food on <b>${loggedDays.length}</b> day${loggedDays.length===1?'':'s'} in this period.`:'No logged days yet.'}`;
+}
 function renderTrends(){
  let mode=trendPeriod.value, periods=[];
  if(mode==="weekly"){
@@ -469,6 +507,7 @@ function renderTrends(){
  const macroData=[['Protein',ap,S.p,'g'],['Calories',ac,S.c,'kcal'],['Fat',af,S.f,'g'],['Fibre',afi,S.fi,'g']];
  macroTrendBars.innerHTML=macroData.map(([name,val,target,unit])=>{const pct=Math.min(100,target?val/target*100:0);return `<div class=macroBarRow><b>${name}</b><div class=bar><div class=fill style="width:${pct}%"></div></div><span class=small>${val.toFixed(unit==='kcal'?0:1)} / ${target} ${unit}</span></div>`}).join('');
  renderCalendar();
+ renderSmartInsights(mode);
  let running=0;
  cumRows.innerHTML=periods.map(x=>{running+=x.p;return `<div class=row><div><b>${x.label}</b><div class=small>Protein ${x.p.toFixed(0)} g • Carbs ${x.carb.toFixed(0)} g • Fat ${x.f.toFixed(0)} g • Fibre ${x.fiber.toFixed(0)} g</div></div><span class=protein>${running.toFixed(0)} g P cumulative</span></div>`}).join("");
  cumSummary.innerHTML=`Across the selected ${mode==="weekly"?"8-week":"12-month"} period, you've logged <b>${totalP.toFixed(0)} g</b> protein, <b>${Math.round(totalC)} kcal</b>, <b>${totalF.toFixed(0)} g</b> fat and <b>${totalFiber.toFixed(0)} g</b> fibre. Averages use logged days only.`;
