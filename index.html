@@ -31,6 +31,8 @@ label{display:block;color:var(--muted);font-size:12px;margin:9px 0 5px}.grid{dis
 canvas{width:100%;height:220px;background:#fbfcfe;border-radius:12px}
 footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 @media(max-width:600px){.stats,.summary{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}.dash{grid-template-columns:1fr 1fr}}
+
+.backupHealth{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:10px}.backupHealth.good{background:#f1fbf4;border-color:#b7e1c5}.backupHealth.warn{background:#fff8eb;border-color:#f7d48a}.backupHealth.bad{background:#fff5f4;border-color:#fecdca}.weeklyBadgeGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}@media(max-width:600px){.weeklyBadgeGrid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -191,7 +193,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <label>Fibre target g/day</label><input id="sfi" type="number" step="0.1">
 <div class="small" style="margin-top:8px">Protein and calories use your existing targets. Fat, carbs and fibre targets are editable. The default carbs target is 240 g/day.</div>
 <button class="primary" onclick="saveSettings()">Save targets</button></div>
-<div class="card"><h3>⭐ Favorites</h3><div class="small">Favorite foods appear in Quick add. Recently used foods are shown automatically.</div></div><div class="card"><h3>💾 Backup & Export</h3><div class="small">Keep a backup before clearing browser/app data. Restore brings back your foods, meals, favorites and history.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="secondary" onclick="backup()">⬇ Download backup</button><button class="secondary" onclick="document.getElementById("restoreFile").click()">⬆ Restore backup</button><button class="secondary" onclick="exportCSV()">📊 Export CSV</button></div><input id="restoreFile" type="file" accept="application/json,.json" style="display:none" onchange="restoreBackup(event)"><div class="small" id="backupStatus" style="margin-top:8px"></div></div>
+<div class="card"><h3>⭐ Favorites</h3><div class="small">Favorite foods appear in Quick add. Recently used foods are shown automatically.</div></div><div class="card"><h3>💾 Backup & Export</h3><div class="small">Keep a backup before clearing browser/app data. Restore brings back your foods, meals, favorites and history.</div><div id="backupHealth" class="backupHealth"><div><b id="backupHealthTitle">Backup status</b><div class="small" id="backupHealthText">Checking backup status…</div></div><button class="secondary" onclick="backup()">⬇ Back up now</button></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="secondary" onclick="document.getElementById("restoreFile").click()">⬆ Restore backup</button><button class="secondary" onclick="exportCSV()">📊 Export CSV</button></div><input id="restoreFile" type="file" accept="application/json,.json" style="display:none" onchange="restoreBackup(event)"><div class="small" id="backupStatus" style="margin-top:8px"></div></div>
 </section>
 <footer>History is stored by date on this device. Household measures are approximate; branded muesli and peanut-butter entries use the package labels you provided. Combo foods use 1 tbsp PB ≈ 15 g and standard portions. Use Backup & Export in Settings to protect your history and export it to CSV.</footer>
 </div>
@@ -301,7 +303,7 @@ function tab(id,b){
  document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on")); b.classList.add("on");
  if(id==="today")renderToday();
  if(id==="add"){addDate.value=selectedDate;opts()}
- if(id==="history"){histDate.value=selectedDate;renderHistoryDay();renderHistorySummary()} if(id==="trends")renderTrends();
+ if(id==="history"){histDate.value=selectedDate;renderHistoryDay();renderHistorySummary()} if(id==="trends")renderTrends(); if(id==="settings")renderBackupHealth();
  if(id==="custom")customList();
  if(id==="meals")mealUI();
 }
@@ -501,6 +503,17 @@ function weeklyStreakInfo(){
  for(const w of weeks){ if(w.ok){run++;best=Math.max(best,run)} else if(w.complete) run=0; }
  return {streak:effectiveStreak,currentCount,currentWeekComplete,canStillQualify,needed:Math.max(0,5-currentCount),best,currentWeek};
 }
+function weeklyAchievementInfo(){
+ const info=weeklyStreakInfo();
+ const milestones=[4,8,12];
+ const completed=milestones.filter(m=>info.best>=m);
+ const next=milestones.find(m=>info.best<m)||milestones[milestones.length-1];
+ const previous=completed.length?completed[completed.length-1]:0;
+ const range=Math.max(1,next-previous);
+ const progress=info.best>=next?100:Math.min(100,Math.max(0,(info.best-previous)/range*100));
+ return {milestones,completed,next,progress,best:info.best};
+}
+
 function renderAchievements(){
  const el=document.getElementById('achievementCenter'); if(!el)return;
  const tracking=trackingStreakInfo();
@@ -508,13 +521,14 @@ function renderAchievements(){
  const weekly=weeklyStreakInfo();
  const tm=achievementTrack(tracking.streak,[10,30,45]);
  const pm=achievementTrack(targetDays,[50,100,200]);
+ const wm=weeklyAchievementInfo();
  const badge=(m,done,next,label='days')=>`<span class="badge ${done?'done':m===next?'next':''}">${done?'🏆':'🔒'} ${m} ${label}</span>`;
  const trackText=tracking.todayLogged?`You're on a <b>${tracking.streak}-day protein streak</b>. Reach your protein target every day to keep it going.`:`Today's protein target is not reached yet. Reach your target to keep your daily streak alive.`;
  const proteinText=`You've reached your ${S.p} g protein target on <b>${targetDays} day${targetDays===1?'':'s'}</b> in total.`;
  const weekText=weekly.currentWeekComplete
   ? (weekly.currentCount>=5 ? `✅ This week qualified with <b>${weekly.currentCount}/7 target days</b>.` : `❌ This week finished at <b>${weekly.currentCount}/7 target days</b>; the weekly streak resets.`)
   : (weekly.currentCount>=5 ? `🎉 <b>${weekly.currentCount}/7 days</b> achieved — this week is already secured!` : `You have <b>${weekly.currentCount}/7 target days</b>. ${weekly.needed} more day${weekly.needed===1?'':'s'} needed to secure this week.`);
- el.innerHTML=`<h3 style="margin-bottom:4px">🏆 Achievement journey</h3><div class="small">Three ways to stay consistent: a strict daily protein streak, a forgiving 5-of-7 weekly streak, and lifetime protein-target milestones.</div><div class="achievementGrid"><div class="achievementCard"><div class="achievementHead"><div class="achievementTitle">📅 Daily protein streak</div><b>${tracking.streak} 🔥</b></div><div class="donutWrap">${donutSvg(tm.progress,'Daily protein streak progress')}<div><div class="achievementProgress">${tm.completed.length===3?'All daily streak milestones unlocked!':`Next milestone: <b>${tm.next} days</b>`}</div><div class="small" style="margin-top:5px">Best streak: ${tracking.best} day${tracking.best===1?'':'s'}</div></div></div><div class="badgeRow">${[10,30,45].map(m=>badge(m,tracking.streak>=m,tm.next)).join('')}</div><div class="small" style="margin-top:8px">${trackText}</div></div><div class="achievementCard"><div class="achievementHead"><div class="achievementTitle">📆 Weekly protein streak</div><b>${weekly.streak} 🔥</b></div><div class="donutWrap">${donutSvg(Math.min(100,weekly.currentCount/5*100),'Weekly protein streak progress')}<div><div class="achievementProgress">This week: <b>${weekly.currentCount}/5</b> days needed</div><div class="small" style="margin-top:5px">Best weekly streak: ${weekly.best} week${weekly.best===1?'':'s'}</div></div></div><div class="badgeRow"><span class="badge ${weekly.currentCount>=5?'done':'next'}">${weekly.currentCount>=5?'🏆':'🎯'} 5/7 target days</span><span class="badge">Mon–Sun</span></div><div class="small" style="margin-top:8px">${weekText}</div></div><div class="achievementCard"><div class="achievementHead"><div class="achievementTitle">💪 Protein target</div><b>${targetDays} 🎯</b></div><div class="donutWrap">${donutSvg(pm.progress,'Protein target achievement progress')}<div><div class="achievementProgress">${pm.completed.length===3?'All protein milestones unlocked!':`Next milestone: <b>${pm.next} target days</b>`}</div><div class="small" style="margin-top:5px">Current daily streak: ${proteinStreakInfo().streak} day${proteinStreakInfo().streak===1?'':'s'}</div></div></div><div class="badgeRow">${[50,100,200].map(m=>badge(m,targetDays>=m,pm.next)).join('')}</div><div class="small" style="margin-top:8px">${proteinText}</div></div></div><div class="note small" style="margin-top:10px">💡 <b>My recommendation:</b> keep the daily protein streak strict so reaching your protein target every day remains motivating. The new <b>5-of-7 weekly streak</b> is your cushion for busy days — one or two missed days can happen without losing your weekly consistency streak. Lifetime protein achievements never reset.</div>`;
+ el.innerHTML=`<h3 style="margin-bottom:4px">🏆 Achievement journey</h3><div class="small">Three ways to stay consistent: a strict daily protein streak, a forgiving 5-of-7 weekly streak, and lifetime protein-target milestones.</div><div class="achievementGrid"><div class="achievementCard"><div class="achievementHead"><div class="achievementTitle">📅 Daily protein streak</div><b>${tracking.streak} 🔥</b></div><div class="donutWrap">${donutSvg(tm.progress,'Daily protein streak progress')}<div><div class="achievementProgress">${tm.completed.length===3?'All daily streak milestones unlocked!':`Next milestone: <b>${tm.next} days</b>`}</div><div class="small" style="margin-top:5px">Best streak: ${tracking.best} day${tracking.best===1?'':'s'}</div></div></div><div class="badgeRow">${[10,30,45].map(m=>badge(m,tracking.streak>=m,tm.next)).join('')}</div><div class="small" style="margin-top:8px">${trackText}</div></div><div class="achievementCard"><div class="achievementHead"><div class="achievementTitle">📆 Weekly protein streak</div><b>${weekly.streak} 🔥</b></div><div class="donutWrap">${donutSvg(Math.min(100,weekly.currentCount/5*100),'Weekly protein streak progress')}<div><div class="achievementProgress">This week: <b>${weekly.currentCount}/5</b> days needed</div><div class="small" style="margin-top:5px">Best weekly streak: ${weekly.best} week${weekly.best===1?'':'s'}</div></div></div><div class="badgeRow"><span class="badge ${weekly.currentCount>=5?'done':'next'}">${weekly.currentCount>=5?'🏆':'🎯'} 5/7 target days</span><span class="badge">Mon–Sun</span></div><div class="weeklyBadgeGrid">${wm.milestones.map(m=>`<span class="badge ${wm.best>=m?'done':m===wm.next?'next':''}">${wm.best>=m?'🏆':'🔒'} ${m}-week streak</span>`).join('')}</div><div class="small" style="margin-top:8px">${weekText} ${wm.best<12?`Best: <b>${wm.best} week${wm.best===1?'':'s'}</b> • Next achievement: <b>${wm.next} weeks</b>`:'All weekly streak achievements unlocked! 🎉'}</div></div><div class="achievementCard"><div class="achievementHead"><div class="achievementTitle">💪 Protein target</div><b>${targetDays} 🎯</b></div><div class="donutWrap">${donutSvg(pm.progress,'Protein target achievement progress')}<div><div class="achievementProgress">${pm.completed.length===3?'All protein milestones unlocked!':`Next milestone: <b>${pm.next} target days</b>`}</div><div class="small" style="margin-top:5px">Current daily streak: ${proteinStreakInfo().streak} day${proteinStreakInfo().streak===1?'':'s'}</div></div></div><div class="badgeRow">${[50,100,200].map(m=>badge(m,targetDays>=m,pm.next)).join('')}</div><div class="small" style="margin-top:8px">${proteinText}</div></div></div><div class="note small" style="margin-top:10px">💡 <b>My recommendation:</b> keep the daily protein streak strict so reaching your protein target every day remains motivating. The new <b>5-of-7 weekly streak</b> is your cushion for busy days — one or two missed days can happen without losing your weekly consistency streak. Lifetime protein achievements never reset.</div>`;
 }
 
 function suggestionPortion(f){
@@ -839,6 +853,75 @@ function renderTrends(){
  cumSummary.innerHTML=`Across the selected ${mode==="weekly"?"8-week":"12-month"} period, you've logged <b>${totalP.toFixed(0)} g</b> protein, <b>${Math.round(totalC)} kcal</b>, <b>${totalF.toFixed(0)} g</b> fat and <b>${totalFiber.toFixed(0)} g</b> fibre. Averages use logged days only.`;
 }
 
+
+function escapeHtml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function hashId(name){
+ let h=2166136261;
+ for(let i=0;i<String(name).length;i++){h^=String(name).charCodeAt(i);h=Math.imul(h,16777619);}
+ return 'food_'+(h>>>0).toString(16);
+}
+function ensureFoodIds(){
+ if(!S.foodIds||typeof S.foodIds!=='object')S.foodIds={};
+ arr().forEach(f=>{if(f&&f[0]&&!S.foodIds[f[0]])S.foodIds[f[0]]=hashId(f[0]);});
+ Object.values(S.meals||{}).forEach(m=>{
+   if(!m||typeof m!=='object')return;
+   if(!Array.isArray(m.names)&&Array.isArray(m.ids)) m.names=m.ids.map(i=>arr()[i]).filter(Boolean).map(f=>f[0]);
+   if(!Array.isArray(m.names)&&Array.isArray(m.foodIds)) m.names=m.foodIds.map(foodNameFromId).filter(Boolean);
+   if(Array.isArray(m.names)) m.foodIds=m.names.map(n=>S.foodIds[n]||hashId(n));
+ });
+ save();
+}
+function foodNameFromId(id){
+ const hit=Object.entries(S.foodIds||{}).find(([name,v])=>v===id);
+ return hit?hit[0]:'';
+}
+function mealRecipeEntries(m){
+ if(!m)return [];
+ let names=Array.isArray(m.names)?m.names.slice():[];
+ if(!names.length&&Array.isArray(m.foodIds)) names=m.foodIds.map(foodNameFromId).filter(Boolean);
+ if(!names.length&&Array.isArray(m.ids)) names=m.ids.map(i=>arr()[i]).filter(Boolean).map(f=>f[0]);
+ return names.map((name,k)=>{
+   const f=arr().find(x=>x[0]===name); if(!f)return null;
+   const q=(m.qs&&m.qs[k]!=null)?(+m.qs[k]||0):100;
+   const u=(m.units&&m.units[k])||'g';
+   const g=gramsFor(f,q,u);
+   return {name,f,q,u,g,p:(+f[1]||0)*g/100,c:(+f[2]||0)*g/100,fat:(+f[3]||0)*g/100,carb:(+f[4]||0)*g/100,fiber:(+f[5]||0)*g/100};
+ }).filter(Boolean);
+}
+function mealUI(){
+ ensureFoodIds();
+ const options=arr().map((f,i)=>`<option value="${i}">${escapeHtml(f[0])}</option>`).join('');
+ mfoods.innerHTML=options;
+ const entries=Object.entries(S.meals||{});
+ if(!entries.length){mealList.innerHTML='<div class="note small">No saved meals yet. Create your first meal below.</div>';return;}
+ mealList.innerHTML=entries.map(([name,m])=>{
+   const es=mealRecipeEntries(m), multv=+m.m||1;
+   let p=0,c=0,fat=0,carb=0,fiber=0;
+   es.forEach(x=>{p+=x.p*multv;c+=x.c*multv;fat+=x.fat*multv;carb+=x.carb*multv;fiber+=x.fiber*multv;});
+   if(m.extraGhee){const gf=arr().find(x=>x[0]==='Ghee');if(gf){const g=+m.extraGhee*multv;c+=(+gf[2]||0)*g/100;fat+=(+gf[3]||0)*g/100;}}
+   const ing=es.map(x=>`${escapeHtml(x.name)} — ${x.q} ${escapeHtml(x.u)}`).join('<br>');
+   const safe=JSON.stringify(name);
+   return `<div class="mealGroup"><div class="mealTotal"><div><b>🍽️ ${escapeHtml(name)}</b><div class="small">${es.length} ingredient${es.length===1?'':'s'}${multv!==1?' • ×'+multv:''}</div></div><span class="protein">${p.toFixed(1)} g P</span></div><div class="small" style="margin-top:7px">${ing||'No valid ingredients'}${m.extraGhee?`<br>Extra ghee — ${m.extraGhee} g`:''}</div><div class="small" style="margin-top:7px">${Math.round(c)} kcal • ${fat.toFixed(1)} g fat • ${carb.toFixed(1)} g carbs • ${fiber.toFixed(1)} g fibre</div><div class="historyActions"><button class="primary" onclick='showAddMealOptions(${safe})'>➕ Add to day</button><button class="secondary" onclick='editSavedMeal(${safe})'>✏️ Edit recipe</button><button class="danger" onclick='deleteSavedMeal(${safe})'>Delete</button></div></div>`;
+ }).join('');
+}
+function renderMealQtyEditor(){
+ const el=document.getElementById('mealQtyEditor'); if(!el)return;
+ const selected=[...mfoods.selectedOptions];
+ if(!selected.length){el.innerHTML='Select foods above to set the default quantity for each ingredient.';return;}
+ el.innerHTML=selected.map(o=>{
+   const f=arr()[+o.value],name=f[0],idx=selected.indexOf(o);
+   const current=editingMealName&&S.meals[editingMealName];
+   let q=100,u='g';
+   if(current){const names=mealRecipeEntries(current);const hit=names.find(x=>x.name===name);if(hit){q=hit.q;u=hit.u;}}
+   return `<div style="display:grid;grid-template-columns:1.6fr .8fr .9fr;gap:6px;align-items:end;margin-top:7px"><div><label>${escapeHtml(name)}</label><input class="mealQty" data-name="${escapeHtml(name)}" type="number" min="0" step="0.1" value="${q}"></div><div><label>Unit</label><select class="mealUnit"><option ${u==='g'?'selected':''}>g</option><option ${u==='ml'?'selected':''}>ml</option><option ${u==='tsp'?'selected':''}>tsp</option><option ${u==='tbsp'?'selected':''}>tbsp</option><option ${u==='piece'?'selected':''}>piece</option><option ${u==='bowl'?'selected':''}>bowl</option><option ${u==='cup'?'selected':''}>cup</option><option ${u==='serving'?'selected':''}>serving</option></select></div><div class="small">≈ ${unitText(f,u)}</div></div>`;
+ }).join('');
+}
+function deleteSavedMeal(n){
+ if(!S.meals[n])return;
+ if(!confirm(`Delete saved meal "${n}"? This does not delete food already logged in your history.`))return;
+ delete S.meals[n];save();mealUI();
+}
+
 function showAddMealOptions(n){
  let box=document.getElementById('mealAddOptions');
  if(!box){box=document.createElement('div');box.id='mealAddOptions';box.className='card';document.getElementById('meals').appendChild(box);}
@@ -897,13 +980,26 @@ function addMeal(n){
 }
 
 function saveSettings(){S.p=+sp.value||100;S.c=+sc.value||1900;S.f=+sf.value||60;S.ch=+sch.value||240;S.fi=+sfi.value||25;save();renderToday();alert("Targets saved")}
+function renderBackupHealth(){
+ const el=document.getElementById('backupHealth'), title=document.getElementById('backupHealthTitle'), text=document.getElementById('backupHealthText');
+ if(!el||!title||!text)return;
+ const last=S.lastBackup?new Date(S.lastBackup):null;
+ if(!last||isNaN(last.getTime())){
+   el.className='backupHealth warn'; title.textContent='No backup yet'; text.textContent='Create a backup now to protect your local history and saved meals.'; return;
+ }
+ const days=Math.floor((Date.now()-last.getTime())/86400000);
+ if(days<=7){el.className='backupHealth good'; title.textContent='Backup is recent ✓'; text.textContent=`Last backup: ${last.toLocaleString('en-IN')} • ${days===0?'today':days+' day'+(days===1?'':'s')+' ago'}`;}
+ else if(days<=30){el.className='backupHealth warn'; title.textContent='Backup recommended'; text.textContent=`Last backup was ${days} days ago. Consider creating a fresh backup.`;}
+ else {el.className='backupHealth bad'; title.textContent='Backup overdue'; text.textContent=`Last backup was ${days} days ago. Please back up your tracker.`;}
+}
+
 function backup(){
  S.backupVersion=2; S.foodIdVersion=1; ensureFoodIds(); S.lastBackup=new Date().toISOString(); save();
- let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:"application/json"}));a.download="my-protein-tracker-backup-"+todayKey()+".json";a.click(); backupStatus.textContent="Backup created: "+new Date().toLocaleString("en-IN");
+ let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:"application/json"}));a.download="my-protein-tracker-backup-"+todayKey()+".json";a.click(); backupStatus.textContent="Backup created: "+new Date().toLocaleString("en-IN"); renderBackupHealth();
 }
 function restoreBackup(ev){
  const file=ev.target.files?.[0]; if(!file)return;
- const r=new FileReader(); r.onload=()=>{try{const data=JSON.parse(r.result); if(!data||typeof data!=="object"||!data.days||!data.meals){throw new Error("Invalid backup");} if(!confirm("Restore this backup? Your current local tracker data will be replaced.")){ev.target.value="";return;} S=data; normalizeMealCategories(); if(S.f==null)S.f=60;if(S.ch==null)S.ch=240;if(S.fi==null)S.fi=25;if(!Array.isArray(S.favorites))S.favorites=[];if(!Array.isArray(S.recent))S.recent=[];if(!S.lastQty||typeof S.lastQty!=='object')S.lastQty={};save();sp.value=S.p;sc.value=S.c;sf.value=S.f;sch.value=S.ch;sfi.value=S.fi;opts();renderQuickFoods();renderToday();customList();mealUI();backupStatus.textContent="Backup restored: "+new Date().toLocaleString("en-IN");alert("Backup restored successfully");}catch(e){alert("Could not restore backup. Please choose a valid My Protein Tracker backup file.");}ev.target.value="";}; r.readAsText(file);
+ const r=new FileReader(); r.onload=()=>{try{const data=JSON.parse(r.result); if(!data||typeof data!=="object"||!data.days||!data.meals){throw new Error("Invalid backup");} if(!confirm("Restore this backup? Your current local tracker data will be replaced.")){ev.target.value="";return;} S=data; normalizeMealCategories(); if(S.f==null)S.f=60;if(S.ch==null)S.ch=240;if(S.fi==null)S.fi=25;if(!Array.isArray(S.favorites))S.favorites=[];if(!Array.isArray(S.recent))S.recent=[];if(!S.lastQty||typeof S.lastQty!=='object')S.lastQty={};save();sp.value=S.p;sc.value=S.c;sf.value=S.f;sch.value=S.ch;sfi.value=S.fi;opts();renderQuickFoods();renderToday();customList();mealUI();backupStatus.textContent="Backup restored: "+new Date().toLocaleString("en-IN"); renderBackupHealth();alert("Backup restored successfully");}catch(e){alert("Could not restore backup. Please choose a valid My Protein Tracker backup file.");}ev.target.value="";}; r.readAsText(file);
 }
 function csvCell(v){let s=String(v??"");return '"'+s.replaceAll('"','""')+'"'}
 function exportCSV(){
@@ -936,7 +1032,7 @@ function ensurePresetMeals(){
 // PWA update helper: register the versioned service worker and let a new worker take over immediately.
 (function setupPwaUpdates(){
   if(!('serviceWorker' in navigator)) return;
-  const SW_VERSION='v40';
+  const SW_VERSION='v42';
   let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
     if(reloaded) return;
@@ -948,6 +1044,6 @@ function ensurePresetMeals(){
   }).catch(()=>{});
 })();
 
-ensurePresetMeals();ensureFoodIds();normalizeMealCategories();renderQuickFoods();sp.value=S.p;sc.value=S.c;sf.value=S.f;sch.value=S.ch;sfi.value=S.fi;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();
+ensurePresetMeals();ensureFoodIds();normalizeMealCategories();renderQuickFoods();sp.value=S.p;sc.value=S.c;sf.value=S.f;sch.value=S.ch;sfi.value=S.fi;addDate.value=todayKey();histDate.value=todayKey();opts();renderToday();renderBackupHealth();
 </script>
 </body></html>
