@@ -34,6 +34,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 
 .backupHealth{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:10px}.backupHealth.good{background:#f1fbf4;border-color:#b7e1c5}.backupHealth.warn{background:#fff8eb;border-color:#f7d48a}.backupHealth.bad{background:#fff5f4;border-color:#fecdca}.weeklyBadgeGrid{display:flex;gap:6px;margin-top:8px;flex-wrap:nowrap}.weeklyBadgeGrid .badge{flex:1;text-align:center;white-space:nowrap}@media(max-width:600px){.weeklyBadgeGrid{gap:5px}.weeklyBadgeGrid .badge{font-size:10px;padding:6px 5px}}
 
+.microTrendGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.microTrendCard{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:10px}.microTrendTop{display:flex;justify-content:space-between;align-items:center;gap:8px}.microStatus{display:inline-block;padding:4px 7px;border-radius:9px;font-size:10px;font-weight:bold;white-space:nowrap}.microStatus.good{background:#e8f7ed;color:#15753b}.microStatus.watch{background:#fff5df;color:#9a6700}.microStatus.risk{background:#fff0f0;color:#b42318}.microStatus.high{background:#fff0f0;color:#b42318}.microStatus.neutral{background:#eef3f8;color:#667085}.microFocusGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}.microFocus{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}.microFocus.risk{border-color:#fecdca;background:#fff8f7}.microFocus.watch{border-color:#f7d48a;background:#fffaf0}.microFocus.good{border-color:#b7e1c5;background:#f7fcf8}@media(max-width:600px){.microTrendGrid,.microFocusGrid{grid-template-columns:1fr}.microFocusGrid .microFocus{padding:9px}}
 .microSummary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.microCard{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:10px}.microHead{display:flex;justify-content:space-between;gap:8px;align-items:center}.microHead b{font-size:14px}.microPct{font-weight:bold;color:var(--muted);font-size:12px}.microBar{height:8px;background:#e7ecf3;border-radius:8px;overflow:hidden;margin-top:7px}.microFill{height:100%;border-radius:8px;background:var(--g);width:0}.microFill.yellow{background:#f79009}.microFill.red{background:#d92d20}.microGroupTitle{margin:16px 0 8px;color:var(--b)}.microFoodGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.microFood{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}.microFood b{display:block}.microLegend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}.microLegend span{font-size:11px;color:var(--muted)}.microNotice{background:#fff8eb;border:1px solid #f7d48a;border-radius:12px;padding:10px;margin-top:10px}.microPreview{margin-top:8px;padding:9px 10px;background:#f8fafc;border-radius:10px;border:1px solid var(--line)}@media(max-width:600px){.microSummary,.microFoodGrid{grid-template-columns:1fr}.microCard{padding:9px}}
 </style>
 </head>
@@ -91,6 +92,16 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div id="microSourceNote" class="microNotice" style="margin-top:8px"></div>
 <div id="microSummary" class="microSummary"></div>
 <div class="microLegend"><span>🟢 ≥80% of reference</span><span>🟡 50–79%</span><span>🔴 &lt;50%</span></div>
+</div>
+<div class="card">
+<h3>📊 Weekly & monthly micronutrient average</h3>
+<div class="small">Averages are calculated from days with food entries, ending on the selected date. Days with no logged food are shown in the coverage count rather than treated as zero intake.</div>
+<div id="microPeriodSummary" class="microNotice"></div>
+<div class="microTrendGrid">
+  <div class="microTrendCard"><div class="microTrendTop"><b>📅 Last 7 days</b><span id="microWeekCoverage" class="small"></span></div><div id="microWeekRows"></div></div>
+  <div class="microTrendCard"><div class="microTrendTop"><b>🗓️ Last 30 days</b><span id="microMonthCoverage" class="small"></span></div><div id="microMonthRows"></div></div>
+</div>
+<div style="margin-top:12px"><b>🎯 Improvement priorities</b><div class="small" style="margin-top:3px">The app highlights the nutrients with the lowest average coverage so you can decide which foods to add more often.</div><div id="microFocusGrid" class="microFocusGrid"></div></div>
 </div>
 <div class="card"><h3>🍽️ Micronutrient contributors</h3><div class="small">Foods contributing the most to each selected micronutrient on this date.</div><div id="microFoods"></div></div>
 <div class="card"><h3>📚 All nutrients</h3><div id="allMicroRows"></div></div>
@@ -783,8 +794,61 @@ function changeMicroDate(delta){const dt=new Date((todayViewDate||todayKey())+'T
 function resetMicroDate(){todayViewDate=todayKey();selectedDate=todayViewDate;renderMicronutrients();}
 function microFmt(v,unit){if(unit==='mg')return v>=100?Math.round(v):v.toFixed(1);if(unit==='µg')return v>=100?Math.round(v):v.toFixed(2);return v.toFixed(2)}
 function microBarClass(p,goal){if(!goal)return p>100?'red':p>80?'yellow':'';return p<50?'red':p<80?'yellow':'';}
+function microPeriodDays(endDate,count){
+ const out=[]; const end=new Date(endDate+'T12:00:00');
+ for(let i=0;i<count;i++){
+  const dt=new Date(end); dt.setDate(end.getDate()-i);
+  const k=dt.toISOString().slice(0,10); const a=S.days[k]||[];
+  if(a.length)out.push({date:k,a});
+ }
+ return out;
+}
+function microPeriodAverage(endDate,count){
+ const days=microPeriodDays(endDate,count), totals={}; Object.keys(MICRO_TARGETS).forEach(k=>totals[k]=0);
+ days.forEach(d=>{const r=microTotals(d.a).out; Object.keys(totals).forEach(k=>totals[k]+=r[k]||0);});
+ const avg={}; Object.keys(totals).forEach(k=>avg[k]=days.length?totals[k]/days.length:0);
+ return {days,avg,logged:days.length,totalDays:count};
+}
+function microStatus(key,v){
+ const meta=MICRO_TARGETS[key]; if(!meta)return {label:'—',cls:'neutral'};
+ const pct=meta.target?(v/meta.target*100):0;
+ if(!meta.goal){
+  if(pct<=80)return {label:'Within range',cls:'good'};
+  if(pct<=100)return {label:'Watch',cls:'watch'};
+  return {label:'High',cls:'high'};
+ }
+ if(pct>=100)return {label:'Target met',cls:'good'};
+ if(pct>=80)return {label:'Close to target',cls:'watch'};
+ if(pct>=50)return {label:'Needs improvement',cls:'watch'};
+ return {label:'Risk',cls:'risk'};
+}
+function microTrendRow(key,v){
+ const meta=MICRO_TARGETS[key],st=microStatus(key,v),pct=meta.target?Math.round(v/meta.target*100):0;
+ const bar=Math.min(100,pct); const cls=st.cls==='risk'?'red':st.cls==='watch'?'yellow':'';
+ return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div class="microTrendTop"><div><b>${meta.label}</b><div class="small">Avg ${microFmt(v,meta.unit)} ${meta.unit} / ${meta.target} ${meta.unit}</div></div><span class="microStatus ${st.cls}">${st.label}</span></div><div class="microBar"><div class="microFill ${cls}" style="width:${bar}%"></div></div><div class="small" style="margin-top:3px;text-align:right">${pct}% of reference</div></div>`;
+}
+function renderMicroPeriodAnalysis(endDate){
+ const week=microPeriodAverage(endDate,7),month=microPeriodAverage(endDate,30);
+ const keys=['calcium','iron','zinc','magnesium','potassium','phosphorus','sodium','vitaminA','vitaminC','vitaminD','vitaminE','vitaminK','folate','vitaminB12','cholesterol'];
+ const rowOrder=keys;
+ const empty='<div class="small" style="padding:12px 0">No logged days in this period yet.</div>';
+ document.getElementById('microWeekCoverage').textContent=`${week.logged}/7 days logged`;
+ document.getElementById('microMonthCoverage').textContent=`${month.logged}/30 days logged`;
+ document.getElementById('microWeekRows').innerHTML=week.logged?rowOrder.map(k=>microTrendRow(k,week.avg[k])).join(''):empty;
+ document.getElementById('microMonthRows').innerHTML=month.logged?rowOrder.map(k=>microTrendRow(k,month.avg[k])).join(''):empty;
+ const focusCandidates=keys.filter(k=>MICRO_TARGETS[k].goal).map(k=>({key:k,week:week.avg[k],month:month.avg[k],score:Math.min(week.logged?week.avg[k]/MICRO_TARGETS[k].target:999,month.logged?month.avg[k]/MICRO_TARGETS[k].target:999)})).sort((a,b)=>a.score-b.score);
+ const focus=focusCandidates.slice(0,3).filter(x=>(week.logged?x.week:0)<MICRO_TARGETS[x.key].target*.8 || (month.logged?x.month:0)<MICRO_TARGETS[x.key].target*.8);
+ const fg=document.getElementById('microFocusGrid');
+ if(!fg)return;
+ if(!focus.length){fg.innerHTML='<div class="microFocus good"><b>🎉 Good coverage</b><div class="small" style="margin-top:4px">No major micronutrient gap is showing below 80% in the available averages.</div></div>';}
+ else fg.innerHTML=focus.map(x=>{const meta=MICRO_TARGETS[x.key],wv=week.avg[x.key],mv=month.avg[x.key],wp=meta.target?wv/meta.target*100:0,mp=meta.target?mv/meta.target*100:0;const use=month.logged?mv:wv;const st=microStatus(x.key,use);return `<div class="microFocus ${st.cls}"><b>${meta.label}</b><div style="margin-top:5px"><span class="microStatus ${st.cls}">${st.label}</span></div><div class="small" style="margin-top:5px">7-day: ${Math.round(wp)}% • 30-day: ${Math.round(mp)}%</div></div>`}).join('');
+ const summary=document.getElementById('microPeriodSummary');
+ if(summary)summary.innerHTML=`<b>How to read this:</b> <span class="microStatus good">Target met</span> ≥100% • <span class="microStatus watch">Close / watch</span> 80–99% • <span class="microStatus risk">Risk</span> &lt;50%. For sodium and cholesterol, the scale is reversed because lower intake is preferable. <b>${week.logged}/7</b> days and <b>${month.logged}/30</b> days have logged food. ${month.logged<20?'<span class="small">More logged days will make the monthly picture more reliable.</span>':''}`;
+}
+
 function renderMicronutrients(){
  const d=todayViewDate||todayKey(),a=getDay(d),r=microTotals(a);
+ renderMicroPeriodAnalysis(d);
  const title=document.getElementById('microDateTitle'),sub=document.getElementById('microDateSub'),next=document.getElementById('nextMicroBtn');
  if(!title)return; title.textContent=microDateLabel(d); sub.textContent=new Date(d+'T12:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}); next.disabled=d===todayKey();next.style.opacity=d===todayKey()?'.45':'1';
  const cov=document.getElementById('microCoverage');
