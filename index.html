@@ -33,6 +33,8 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 @media(max-width:600px){.stats,.summary{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}.dash{grid-template-columns:1fr 1fr}}
 
 .backupHealth{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:10px}.backupHealth.good{background:#f1fbf4;border-color:#b7e1c5}.backupHealth.warn{background:#fff8eb;border-color:#f7d48a}.backupHealth.bad{background:#fff5f4;border-color:#fecdca}.weeklyBadgeGrid{display:flex;gap:6px;margin-top:8px;flex-wrap:nowrap}.weeklyBadgeGrid .badge{flex:1;text-align:center;white-space:nowrap}@media(max-width:600px){.weeklyBadgeGrid{gap:5px}.weeklyBadgeGrid .badge{font-size:10px;padding:6px 5px}}
+
+.microSummary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.microCard{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:10px}.microHead{display:flex;justify-content:space-between;gap:8px;align-items:center}.microHead b{font-size:14px}.microPct{font-weight:bold;color:var(--muted);font-size:12px}.microBar{height:8px;background:#e7ecf3;border-radius:8px;overflow:hidden;margin-top:7px}.microFill{height:100%;border-radius:8px;background:var(--g);width:0}.microFill.yellow{background:#f79009}.microFill.red{background:#d92d20}.microGroupTitle{margin:16px 0 8px;color:var(--b)}.microFoodGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.microFood{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}.microFood b{display:block}.microLegend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}.microLegend span{font-size:11px;color:var(--muted)}.microNotice{background:#fff8eb;border:1px solid #f7d48a;border-radius:12px;padding:10px;margin-top:10px}.microPreview{margin-top:8px;padding:9px 10px;background:#f8fafc;border-radius:10px;border:1px solid var(--line)}@media(max-width:600px){.microSummary,.microFoodGrid{grid-template-columns:1fr}.microCard{padding:9px}}
 </style>
 </head>
 <body>
@@ -40,6 +42,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="wrap">
 <div class="tabs">
 <button class="on" onclick="tab('today',this)">Today</button>
+<button onclick="tab('micros',this)">🧬 Micronutrients</button>
 <button onclick="tab('add',this)">Add Food</button>
 <button onclick="tab('history',this)">📅 History</button><button onclick="tab('trends',this)">📈 Trends</button>
 <button onclick="tab('custom',this)">My Foods</button>
@@ -71,6 +74,28 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="card" id="proteinStreak"></div><div class="card" id="achievementCenter"></div><div class="card" id="dailyInsight"></div><div class="card" id="todayFocus"></div><div class="card" id="proteinHelper"></div><div class="card" id="redFlagFoods"></div><div class="card" id="todayList"></div>
 </section>
 
+
+<section id="micros" class="hidden">
+<div class="card todayDateCard">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+<button class="secondary" onclick="changeMicroDate(-1)" aria-label="Previous day">‹</button>
+<div style="text-align:center;flex:1"><b id="microDateTitle">Today</b><div class="small" id="microDateSub"></div></div>
+<button class="secondary" onclick="changeMicroDate(1)" id="nextMicroBtn" aria-label="Next day">›</button>
+</div>
+<div style="text-align:center;margin-top:8px"><button class="secondary" onclick="resetMicroDate()">↩ Back to today</button></div>
+</div>
+<div class="card">
+<h3>🧬 Today's micronutrients</h3>
+<div class="small">Calculated from the foods you logged for the selected date. Values are per food quantity; product-label values are used where available; missing micronutrients remain reference estimates and are marked accordingly.</div>
+<div id="microCoverage" class="microNotice"></div>
+<div id="microSourceNote" class="microNotice" style="margin-top:8px"></div>
+<div id="microSummary" class="microSummary"></div>
+<div class="microLegend"><span>🟢 ≥80% of reference</span><span>🟡 50–79%</span><span>🔴 &lt;50%</span></div>
+</div>
+<div class="card"><h3>🍽️ Micronutrient contributors</h3><div class="small">Foods contributing the most to each selected micronutrient on this date.</div><div id="microFoods"></div></div>
+<div class="card"><h3>📚 All nutrients</h3><div id="allMicroRows"></div></div>
+</section>
+
 <section id="add" class="hidden">
 <div class="card"><h3>Add Food</h3>
 <label>Date</label><input id="addDate" type="date" onchange="setDateFromAdd()">
@@ -79,7 +104,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="card" style="margin:10px 0;padding:12px;background:#f8fafc"><b>⚡ Quick add</b><div id="quickFoods" class="quick" style="margin-top:8px"></div></div><label>Search food</label><input id="search" oninput="opts()" placeholder="paneer, yogurt, burrito bowl...">
 <label>Food</label><select id="food" onchange="prev()"></select><div style="display:flex;gap:8px;align-items:center;margin-top:8px"><button type="button" class="secondary" onclick="toggleFavoriteSelected()" id="favBtn">☆ Favorite</button><span class="small" id="favHint"></span></div>
 <label>Amount</label><div class="grid"><input id="qty" type="number" value="100" oninput="prev()"><select id="unit" onchange="prev()"><option value="g">g</option><option value="ml">ml</option><option value="tsp">teaspoon</option><option value="tbsp">tablespoon</option><option value="piece">piece</option><option value="bowl">bowl</option><option value="cup">cup</option><option value="serving">serving</option></select></div>
-<div class="small" id="unitHint"></div><div class="small" id="preview"></div>
+<div class="small" id="unitHint"></div><div class="small" id="preview"></div><div id="microPreview" class="microPreview"></div>
 <button id="addAction" class="primary" onclick="addOrUpdate()">+ Add to selected date</button>
 </div>
 </section>
@@ -270,6 +295,103 @@ const B=[
 ["Chicken nuggets",15.0,296,18,18,1.5],
 ["Veg cheese nuggets",9.0,240,13,24,3]]
 
+const MICRO_TARGETS={
+ calcium:{label:'Calcium',unit:'mg',target:1000,goal:true}, iron:{label:'Iron',unit:'mg',target:19,goal:true}, zinc:{label:'Zinc',unit:'mg',target:17,goal:true}, magnesium:{label:'Magnesium',unit:'mg',target:440,goal:true}, potassium:{label:'Potassium',unit:'mg',target:3500,goal:true}, phosphorus:{label:'Phosphorus',unit:'mg',target:700,goal:true}, sodium:{label:'Sodium',unit:'mg',target:2000,goal:false}, vitaminA:{label:'Vitamin A',unit:'µg',target:900,goal:true}, vitaminC:{label:'Vitamin C',unit:'mg',target:65,goal:true}, vitaminD:{label:'Vitamin D',unit:'µg',target:15,goal:true}, vitaminE:{label:'Vitamin E',unit:'mg',target:10,goal:true}, vitaminK:{label:'Vitamin K',unit:'µg',target:120,goal:true}, folate:{label:'Folate',unit:'µg',target:400,goal:true}, vitaminB12:{label:'Vitamin B12',unit:'µg',target:2.4,goal:true}, cholesterol:{label:'Cholesterol',unit:'mg',target:300,goal:false}
+};
+// Approximate micronutrients per 100 g. Branded foods use the closest food-type reference when their label does not list micros.
+const MICRO={
+'Egg, whole':{calcium:56,iron:1.75,zinc:1.29,magnesium:12,potassium:138,phosphorus:198,sodium:142,vitaminA:160,vitaminC:0,vitaminD:2,vitaminE:1.05,vitaminK:0.3,folate:47,vitaminB12:1.89,cholesterol:372},
+'Egg white':{calcium:7,iron:.08,zinc:.03,magnesium:11,potassium:163,phosphorus:15,sodium:166,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:0,vitaminK:0,folate:4,vitaminB12:0.09,cholesterol:0},
+'Toned milk':{calcium:120,iron:.03,zinc:.4,magnesium:11,potassium:150,phosphorus:95,sodium:45,vitaminA:46,vitaminC:0.9,vitaminD:1.0,vitaminE:.07,vitaminK:.2,folate:5,vitaminB12:.45,cholesterol:10},
+'Curd/yogurt':{calcium:121,iron:.05,zinc:.59,magnesium:12,potassium:155,phosphorus:95,sodium:46,vitaminA:27,vitaminC:.5,vitaminD:.1,vitaminE:.05,vitaminK:.2,folate:7,vitaminB12:.37,cholesterol:13},
+'Greek/high-protein curd':{calcium:110,iron:.05,zinc:.6,magnesium:11,potassium:140,phosphorus:135,sodium:45,vitaminA:30,vitaminC:.5,vitaminD:.1,vitaminE:.1,vitaminK:.2,folate:7,vitaminB12:.7,cholesterol:8},
+'Paneer':{calcium:208,iron:.2,zinc:2.1,magnesium:8,potassium:71,phosphorus:138,sodium:22,vitaminA:210,vitaminC:0,vitaminD:.2,vitaminE:.2,vitaminK:2,folate:6,vitaminB12:1.2,cholesterol:56},
+'Low-fat paneer':{calcium:200,iron:.2,zinc:2.2,magnesium:12,potassium:90,phosphorus:160,sodium:40,vitaminA:100,vitaminC:0,vitaminD:.1,vitaminE:.1,vitaminK:1,folate:8,vitaminB12:1.0,cholesterol:25},
+'Tofu':{calcium:350,iron:5.4,zinc:1.0,magnesium:60,potassium:120,phosphorus:97,sodium:15,vitaminA:0,vitaminC:0.2,vitaminD:0,vitaminE:.01,vitaminK:2.4,folate:29,vitaminB12:0,cholesterol:0},
+'Soy chunks (dry)':{calcium:350,iron:8.2,zinc:4.0,magnesium:280,potassium:1800,phosphorus:700,sodium:15,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:0.2,vitaminK:0,folate:300,vitaminB12:0,cholesterol:0},
+'Soy chunks (cooked)':{calcium:80,iron:3.0,zinc:1.0,magnesium:55,potassium:470,phosphorus:150,sodium:10,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:.1,vitaminK:0,folate:50,vitaminB12:0,cholesterol:0},
+'Black chana (cooked)':{calcium:49,iron:2.9,zinc:1.5,magnesium:48,potassium:291,phosphorus:168,sodium:7,vitaminA:1,vitaminC:1.3,vitaminD:0,vitaminE:.35,vitaminK:4,folate:172,vitaminB12:0,cholesterol:0},
+'White chana (cooked)':{calcium:49,iron:2.9,zinc:1.5,magnesium:48,potassium:291,phosphorus:168,sodium:7,vitaminA:1,vitaminC:1.3,vitaminD:0,vitaminE:.35,vitaminK:4,folate:172,vitaminB12:0,cholesterol:0},
+'Green moong (cooked)':{calcium:27,iron:1.4,zinc:.84,magnesium:48,potassium:266,phosphorus:99,sodium:2,vitaminA:2,vitaminC:1.4,vitaminD:0,vitaminE:.15,vitaminK:2.7,folate:159,vitaminB12:0,cholesterol:0},
+'Rajma (cooked)':{calcium:28,iron:2.9,zinc:1.07,magnesium:45,potassium:405,phosphorus:142,sodium:2,vitaminA:0,vitaminC:1.2,vitaminD:0,vitaminE:.03,vitaminK:8.4,folate:130,vitaminB12:0,cholesterol:0},
+'Toor dal (cooked)':{calcium:24,iron:1.8,zinc:1.0,magnesium:44,potassium:250,phosphorus:150,sodium:3,vitaminA:0,vitaminC:1.5,vitaminD:0,vitaminE:.1,vitaminK:1.5,folate:100,vitaminB12:0,cholesterol:0},
+'Masoor dal (cooked)':{calcium:19,iron:3.3,zinc:1.3,magnesium:36,potassium:369,phosphorus:180,sodium:2,vitaminA:1,vitaminC:1.5,vitaminD:0,vitaminE:.1,vitaminK:1.7,folate:181,vitaminB12:0,cholesterol:0},
+'Moong dal (cooked)':{calcium:27,iron:1.4,zinc:.84,magnesium:48,potassium:266,phosphorus:99,sodium:2,vitaminA:2,vitaminC:1.4,vitaminD:0,vitaminE:.15,vitaminK:2.7,folate:159,vitaminB12:0,cholesterol:0},
+'Urad dal (cooked)':{calcium:37,iron:1.5,zinc:.93,magnesium:53,potassium:266,phosphorus:125,sodium:2,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:.1,vitaminK:0,folate:120,vitaminB12:0,cholesterol:0},
+'Peanuts':{calcium:92,iron:4.6,zinc:3.3,magnesium:168,potassium:705,phosphorus:376,sodium:18,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:8.3,vitaminK:0,folate:240,vitaminB12:0,cholesterol:0},
+'Boiled peanuts':{calcium:55,iron:1.7,zinc:1.2,magnesium:75,potassium:332,phosphorus:151,sodium:20,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:2.2,vitaminK:0,folate:70,vitaminB12:0,cholesterol:0},
+'Almonds':{calcium:269,iron:3.7,zinc:3.1,magnesium:270,potassium:733,phosphorus:481,sodium:1,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:25.6,vitaminK:0,folate:44,vitaminB12:0,cholesterol:0},
+'Pumpkin seeds':{calcium:46,iron:8.8,zinc:7.6,magnesium:592,potassium:919,phosphorus:1233,sodium:7,vitaminA:16,vitaminC:1.9,vitaminD:0,vitaminE:2.2,vitaminK:7.3,folate:58,vitaminB12:0,cholesterol:0},
+'Chia seeds':{calcium:631,iron:7.7,zinc:4.6,magnesium:335,potassium:407,phosphorus:860,sodium:16,vitaminA:0,vitaminC:1.6,vitaminD:0,vitaminE:.5,vitaminK:0.5,folate:49,vitaminB12:0,cholesterol:0},
+'Oats':{calcium:54,iron:4.7,zinc:4.0,magnesium:177,potassium:429,phosphorus:523,sodium:2,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:.42,vitaminK:2,folate:56,vitaminB12:0,cholesterol:0},
+'Broccoli':{calcium:47,iron:.73,zinc:.41,magnesium:21,potassium:316,phosphorus:66,sodium:33,vitaminA:31,vitaminC:89.2,vitaminD:0,vitaminE:.78,vitaminK:101.6,folate:63,vitaminB12:0,cholesterol:0},
+'Spinach':{calcium:99,iron:2.71,zinc:.53,magnesium:79,potassium:558,phosphorus:49,sodium:79,vitaminA:469,vitaminC:28.1,vitaminD:0,vitaminE:2.03,vitaminK:482.9,folate:194,vitaminB12:0,cholesterol:0},
+'Mushroom':{calcium:3,iron:.5,zinc:.52,magnesium:9,potassium:318,phosphorus:86,sodium:5,vitaminA:0,vitaminC:2.1,vitaminD:.2,vitaminE:.01,vitaminK:0,folate:17,vitaminB12:0,cholesterol:0},
+'Sweet corn':{calcium:2,iron:.52,zinc:.46,magnesium:37,potassium:270,phosphorus:89,sodium:15,vitaminA:9,vitaminC:6.8,vitaminD:0,vitaminE:.07,vitaminK:.3,folate:42,vitaminB12:0,cholesterol:0},
+'Avocado':{calcium:12,iron:.55,zinc:.64,magnesium:29,potassium:485,phosphorus:52,sodium:7,vitaminA:7,vitaminC:10,vitaminD:0,vitaminE:2.07,vitaminK:21,folate:81,vitaminB12:0,cholesterol:0},
+'Banana':{calcium:5,iron:.26,zinc:.15,magnesium:27,potassium:358,phosphorus:22,sodium:1,vitaminA:3,vitaminC:8.7,vitaminD:0,vitaminE:.1,vitaminK:.5,folate:20,vitaminB12:0,cholesterol:0},
+'Apple':{calcium:6,iron:.12,zinc:.04,magnesium:5,potassium:107,phosphorus:11,sodium:1,vitaminA:3,vitaminC:4.6,vitaminD:0,vitaminE:.18,vitaminK:2.2,folate:3,vitaminB12:0,cholesterol:0},
+'Orange':{calcium:40,iron:.1,zinc:.07,magnesium:10,potassium:181,phosphorus:14,sodium:0,vitaminA:11,vitaminC:53.2,vitaminD:0,vitaminE:.18,vitaminK:0,folate:30,vitaminB12:0,cholesterol:0},
+'Guava':{calcium:18,iron:.26,zinc:.23,magnesium:22,potassium:417,phosphorus:40,sodium:2,vitaminA:31,vitaminC:228.3,vitaminD:0,vitaminE:.73,vitaminK:2.6,folate:49,vitaminB12:0,cholesterol:0},
+'Dates':{calcium:39,iron:1.02,zinc:.29,magnesium:43,potassium:656,phosphorus:62,sodium:2,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:.05,vitaminK:2.7,folate:19,vitaminB12:0,cholesterol:0},
+'Cucumber':{calcium:16,iron:.28,zinc:.2,magnesium:13,potassium:147,phosphorus:24,sodium:2,vitaminA:5,vitaminC:2.8,vitaminD:0,vitaminE:.03,vitaminK:16.4,folate:7,vitaminB12:0,cholesterol:0},
+'Carrot':{calcium:33,iron:.3,zinc:.24,magnesium:12,potassium:320,phosphorus:35,sodium:69,vitaminA:835,vitaminC:5.9,vitaminD:0,vitaminE:.66,vitaminK:13.2,folate:19,vitaminB12:0,cholesterol:0},
+'Onion':{calcium:23,iron:.21,zinc:.17,magnesium:10,potassium:146,phosphorus:29,sodium:4,vitaminA:0,vitaminC:7.4,vitaminD:0,vitaminE:.02,vitaminK:0.4,folate:19,vitaminB12:0,cholesterol:0},
+'Lettuce':{calcium:36,iron:.86,zinc:.18,magnesium:13,potassium:194,phosphorus:29,sodium:28,vitaminA:370,vitaminC:9.2,vitaminD:0,vitaminE:.22,vitaminK:126.3,folate:38,vitaminB12:0,cholesterol:0},
+'Green gram sprouts (steamed)':{calcium:13,iron:1.4,zinc:.42,magnesium:21,potassium:149,phosphorus:54,sodium:6,vitaminA:1,vitaminC:13.2,vitaminD:0,vitaminE:.1,vitaminK:33,folate:61,vitaminB12:0,cholesterol:0},
+'Ghee':{calcium:0,iron:0,zinc:0,magnesium:0,potassium:0,phosphorus:0,sodium:0,vitaminA:840,vitaminC:0,vitaminD:1.75,vitaminE:2.8,vitaminK:8.6,folate:0,vitaminB12:0,cholesterol:256},
+'Pomegranate arils':{calcium:10,iron:.3,zinc:.35,magnesium:12,potassium:236,phosphorus:36,sodium:3,vitaminA:0,vitaminC:10.2,vitaminD:0,vitaminE:.6,vitaminK:16.4,folate:38,vitaminB12:0,cholesterol:0},
+'Papaya':{calcium:20,iron:.25,zinc:.08,magnesium:21,potassium:182,phosphorus:10,sodium:8,vitaminA:47,vitaminC:60.9,vitaminD:0,vitaminE:.3,vitaminK:2.6,folate:37,vitaminB12:0,cholesterol:0},
+'Pineapple':{calcium:13,iron:.29,zinc:.12,magnesium:12,potassium:109,phosphorus:8,sodium:1,vitaminA:3,vitaminC:47.8,vitaminD:0,vitaminE:.02,vitaminK:0.7,folate:18,vitaminB12:0,cholesterol:0},
+'Green grapes':{calcium:10,iron:.36,zinc:.07,magnesium:7,potassium:191,phosphorus:20,sodium:2,vitaminA:3,vitaminC:3.2,vitaminD:0,vitaminE:.19,vitaminK:14.6,folate:2,vitaminB12:0,cholesterol:0},
+'Chicken breast, boneless, skinless (raw)':{calcium:5,iron:.73,zinc:.69,magnesium:29,potassium:256,phosphorus:198,sodium:45,vitaminA:13,vitaminC:0,vitaminD:.1,vitaminE:.27,vitaminK:2.4,folate:4,vitaminB12:.2,cholesterol:56},
+'Chicken breast, boneless, skinless (cooked)':{calcium:15,iron:1.0,zinc:1.0,magnesium:35,potassium:256,phosphorus:240,sodium:74,vitaminA:13,vitaminC:0,vitaminD:.1,vitaminE:.27,vitaminK:2.4,folate:4,vitaminB12:.3,cholesterol:85},
+'Chicken thigh, boneless, skinless (cooked)':{calcium:15,iron:1.1,zinc:2.4,magnesium:25,potassium:221,phosphorus:180,sodium:80,vitaminA:20,vitaminC:0,vitaminD:.1,vitaminE:.3,vitaminK:2.4,folate:6,vitaminB12:.3,cholesterol:120},
+'Prawns, peeled (cooked)':{calcium:70,iron:2.0,zinc:1.5,magnesium:45,potassium:220,phosphorus:240,sodium:111,vitaminA:0,vitaminC:0,vitaminD:0.2,vitaminE:1.5,vitaminK:0.3,folate:25,vitaminB12:1.1,cholesterol:189},
+'Mutton, boneless (cooked; approx)':{calcium:12,iron:2.1,zinc:5.0,magnesium:21,potassium:260,phosphorus:180,sodium:60,vitaminA:0,vitaminC:0,vitaminD:.1,vitaminE:.2,vitaminK:4,folate:8,vitaminB12:2.5,cholesterol:90},
+'Chicken liver (cooked)':{calcium:11,iron:9.0,zinc:3.3,magnesium:24,potassium:230,phosphorus:332,sodium:94,vitaminA:9449,vitaminC:17.9,vitaminD:.2,vitaminE:.7,vitaminK:3.2,folate:560,vitaminB12:16.6,cholesterol:564},
+'Milky Mist Probiotic Greek Yogurt - label':{...{'calcium':110,'iron':.05,'zinc':.6,'magnesium':11,'potassium':140,'phosphorus':135,'sodium':45,'vitaminA':30,'vitaminC':.5,'vitaminD':.1,'vitaminE':.1,'vitaminK':.2,'folate':7,'vitaminB12':.7,'cholesterol':8},calcium:180,sodium:67,cholesterol:6},
+'Jersey Super Soft Paneer - label':{...{'calcium':208,'iron':.2,'zinc':2.1,'magnesium':8,'potassium':71,'phosphorus':138,'sodium':22,'vitaminA':210,'vitaminC':0,'vitaminD':.2,'vitaminE':.2,'vitaminK':2,'folate':6,'vitaminB12':1.2,'cholesterol':56},calcium:440,sodium:24.3,cholesterol:14},
+'Milky Mist Briyas Tofu - label':{calcium:350,iron:5.4,zinc:1,magnesium:60,potassium:120,phosphorus:97,sodium:15,vitaminA:0,vitaminC:.2,vitaminD:0,vitaminE:.01,vitaminK:2.4,folate:29,vitaminB12:0,cholesterol:0},
+'Eggoz White Protein Rich Egg - label':{...{'calcium':56,'iron':1.75,'zinc':1.29,'magnesium':12,'potassium':138,'phosphorus':198,'sodium':142,'vitaminA':160,'vitaminC':0,'vitaminD':2,'vitaminE':1.05,'vitaminK':.3,'folate':47,'vitaminB12':1.89,'cholesterol':372},vitaminA:150,vitaminD:2.2,vitaminB12:.9},
+};
+['Apple - small','Apple - medium','Apple - large'].forEach(n=>MICRO[n]=MICRO['Apple']);
+['Banana - small','Banana - medium','Banana - large'].forEach(n=>MICRO[n]=MICRO['Banana']);
+['Orange - small','Orange - medium','Orange - large'].forEach(n=>MICRO[n]=MICRO['Orange']);
+['Guava - small','Guava - medium','Guava - large'].forEach(n=>MICRO[n]=MICRO['Guava']);
+MICRO['White rice (cooked)']={calcium:10,iron:.2,zinc:.5,magnesium:12,potassium:35,phosphorus:43,sodium:1,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:.04,vitaminK:.1,folate:58,vitaminB12:0,cholesterol:0};
+MICRO['Brown rice (cooked)']={calcium:10,iron:.56,zinc:.63,magnesium:43,potassium:86,phosphorus:83,sodium:1,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:.17,vitaminK:0.6,folate:9,vitaminB12:0,cholesterol:0};
+MICRO['Chapati']={calcium:100,iron:3.0,zinc:1.2,magnesium:70,potassium:180,phosphorus:140,sodium:5,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:.5,vitaminK:2,folate:45,vitaminB12:0,cholesterol:0};
+MICRO['Idli']={calcium:8,iron:1.4,zinc:.7,magnesium:18,potassium:80,phosphorus:65,sodium:250,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:.1,vitaminK:.1,folate:35,vitaminB12:0,cholesterol:0};
+MICRO['Dosa']={calcium:20,iron:1.6,zinc:.8,magnesium:25,potassium:100,phosphorus:80,sodium:250,vitaminA:5,vitaminC:0,vitaminD:0,vitaminE:.2,vitaminK:.2,folate:30,vitaminB12:0,cholesterol:0};
+MICRO['Muesli']={calcium:60,iron:3.5,zinc:2.2,magnesium:80,potassium:300,phosphorus:250,sodium:120,vitaminA:80,vitaminC:5,vitaminD:0,vitaminE:1.5,vitaminK:5,folate:50,vitaminB12:.2,cholesterol:0};
+MICRO['Yoga Bar Muesli 1 (label)']=MICRO['Muesli']; MICRO['Yoga Bar Muesli 2 - High Protein (label)']=MICRO['Muesli']; MICRO['My Muesli Mix (50:50 by weight)']=MICRO['Muesli'];
+MICRO['Mixed seeds']={calcium:100,iron:5,zinc:5,magnesium:250,potassium:500,phosphorus:650,sodium:20,vitaminA:5,vitaminC:1,vitaminD:0,vitaminE:5,vitaminK:5,folate:80,vitaminB12:0,cholesterol:0};
+MICRO['MyFitness Peanut Butter - Dark Chocolate']={calcium:60,iron:2,zinc:2.5,magnesium:150,potassium:600,phosphorus:350,sodium:200,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:7,vitaminK:0,folate:80,vitaminB12:0,cholesterol:0}; MICRO['Saffola Peanut Butter with Jaggery']={...MICRO['MyFitness Peanut Butter - Dark Chocolate'],zinc:3.4,magnesium:181,potassium:716,phosphorus:301,sodium:138};
+MICRO['Multigrain bread (approx)']={calcium:100,iron:3,zinc:1.2,magnesium:50,potassium:180,phosphorus:140,sodium:450,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:1,vitaminK:3,folate:70,vitaminB12:.1,cholesterol:0};
+MICRO['Buttermilk']={calcium:120,iron:.05,zinc:.4,magnesium:11,potassium:150,phosphorus:95,sodium:45,vitaminA:15,vitaminC:.5,vitaminD:.1,vitaminE:.05,vitaminK:.2,folate:5,vitaminB12:.4,cholesterol:5}; MICRO['Buttermilk (200 ml)']=MICRO['Buttermilk'];
+MICRO['Lemon juice - half lemon']={calcium:22,iron:.08,zinc:.05,magnesium:8,potassium:103,phosphorus:18,sodium:1,vitaminA:1,vitaminC:38.7,vitaminD:0,vitaminE:.15,vitaminK:0,folate:20,vitaminB12:0,cholesterol:0}; MICRO['Cinnamon powder - 1 pinch']={calcium:1002,iron:8.3,zinc:1.8,magnesium:60,potassium:431,phosphorus:64,sodium:10,vitaminA:15,vitaminC:3.8,vitaminD:0,vitaminE:2.3,vitaminK:31.2,folate:6,vitaminB12:0,cholesterol:0}; MICRO['Honey - 1 tsp (5g)']={calcium:6,iron:.42,zinc:.22,magnesium:2,potassium:52,phosphorus:4,sodium:4,vitaminA:0,vitaminC:.5,vitaminD:0,vitaminE:0.1,vitaminK:0,folate:2,vitaminB12:0,cholesterol:0}; MICRO['WOW Apple Cider Vinegar - 15 ml']={calcium:7,iron:.2,zinc:.02,magnesium:5,potassium:73,phosphorus:8,sodium:5,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:0,vitaminK:0,folate:0,vitaminB12:0,cholesterol:0}; MICRO['Plix ACV tablet']={calcium:0,iron:0,zinc:0,magnesium:0,potassium:0,phosphorus:0,sodium:0,vitaminA:0,vitaminC:0,vitaminD:0,vitaminE:0,vitaminK:0,folate:0,vitaminB12:0,cholesterol:0}; MICRO['Green tea - unsweetened 200 ml']=MICRO['Plix ACV tablet'];
+MICRO['Toor dal sambar']={calcium:35,iron:1.5,zinc:.6,magnesium:30,potassium:180,phosphorus:70,sodium:300,vitaminA:50,vitaminC:5,vitaminD:0,vitaminE:.5,vitaminK:10,folate:35,vitaminB12:0,cholesterol:0}; MICRO['Moong dal tadka']={calcium:35,iron:1.5,zinc:.7,magnesium:35,potassium:220,phosphorus:90,sodium:250,vitaminA:20,vitaminC:2,vitaminD:0,vitaminE:.5,vitaminK:5,folate:50,vitaminB12:0,cholesterol:0};
+MICRO['Peanut chutney']={calcium:70,iron:1.8,zinc:1.4,magnesium:70,potassium:220,phosphorus:140,sodium:200,vitaminA:5,vitaminC:1,vitaminD:0,vitaminE:2,vitaminK:1,folate:40,vitaminB12:0,cholesterol:0}; MICRO['Coriander chutney']={calcium:70,iron:1.5,zinc:.5,magnesium:25,potassium:250,phosphorus:40,sodium:200,vitaminA:180,vitaminC:20,vitaminD:0,vitaminE:1,vitaminK:200,folate:60,vitaminB12:0,cholesterol:0}; MICRO['Coconut chutney']={calcium:15,iron:1.5,zinc:1,magnesium:35,potassium:180,phosphorus:60,sodium:150,vitaminA:0,vitaminC:1,vitaminD:0,vitaminE:.2,vitaminK:0,folate:25,vitaminB12:0,cholesterol:0}; MICRO['Black sesame coconut chutney']={calcium:250,iron:3,zinc:2,magnesium:90,potassium:250,phosphorus:150,sodium:120,vitaminA:0,vitaminC:1,vitaminD:0,vitaminE:.5,vitaminK:0,folate:50,vitaminB12:0,cholesterol:0};
+MICRO['Egg Dosa (1 egg + 1 plain dosa)']=MICRO['Egg, whole']; MICRO['Steamed Idli']=MICRO['Idli']; MICRO['Sona/Kurnool rice (steamed/cooked)']=MICRO['White rice (cooked)']; MICRO['Egg curry (1 egg + gravy)']=MICRO['Egg, whole']; MICRO['Egg bhurji (2 eggs + vegetables + 1 tsp oil)']=MICRO['Egg, whole']; MICRO['Paneer bhurji (100g paneer + vegetables + 1 tsp oil)']=MICRO['Paneer'];
+MICRO['Fish, rohu/rohu fillet (boneless, cooked)']={calcium:25,iron:1,zinc:.6,magnesium:30,potassium:300,phosphorus:220,sodium:60,vitaminA:20,vitaminC:0,vitaminD:5,vitaminE:.5,vitaminK:.5,folate:15,vitaminB12:2,cholesterol:60}; MICRO['Fish, rohu (with bone, cooked; approx)']=MICRO['Fish, rohu/rohu fillet (boneless, cooked)']; MICRO['Pomfret (boneless, cooked; approx)']=MICRO['Fish, rohu/rohu fillet (boneless, cooked)']; MICRO['Pomfret (with bone, cooked; approx)']=MICRO['Fish, rohu/rohu fillet (boneless, cooked)'];
+MICRO['Chicken, bone-in (cooked, approx edible portion)']=MICRO['Chicken breast, boneless, skinless (cooked)']; MICRO['Chicken thigh, boneless, skinless (raw)']=MICRO['Chicken thigh, boneless, skinless (cooked)']; MICRO['Chicken leg, boneless, skinless (raw)']=MICRO['Chicken thigh, boneless, skinless (cooked)']; MICRO['Chicken leg, bone-in (raw, approx edible portion)']=MICRO['Chicken thigh, boneless, skinless (cooked)']; MICRO['Mutton, with bone (cooked; approx edible portion)']=MICRO['Mutton, boneless (cooked; approx)'];
+MICRO['Potato fry']={calcium:15,iron:.5,zinc:.3,magnesium:25,potassium:450,phosphorus:60,sodium:250,vitaminA:5,vitaminC:12,vitaminD:0,vitaminE:1,vitaminK:5,folate:15,vitaminB12:0,cholesterol:0}; MICRO['Ladies finger (okra)']={calcium:82,iron:.62,zinc:.58,magnesium:57,potassium:299,phosphorus:61,sodium:7,vitaminA:36,vitaminC:23,vitaminD:0,vitaminE:.3,vitaminK:31.3,folate:60,vitaminB12:0,cholesterol:0}; MICRO['Palak with egg poriyal']=MICRO['Spinach'];
+MICRO['Aloo samosa - big']={calcium:30,iron:1.5,zinc:.5,magnesium:25,potassium:250,phosphorus:70,sodium:350,vitaminA:20,vitaminC:5,vitaminD:0,vitaminE:2,vitaminK:5,folate:20,vitaminB12:0,cholesterol:0}; MICRO['Dal vada']={calcium:50,iron:2,zinc:1,magnesium:45,potassium:250,phosphorus:130,sodium:300,vitaminA:5,vitaminC:1,vitaminD:0,vitaminE:1,vitaminK:2,folate:70,vitaminB12:0,cholesterol:0}; MICRO['Chicken nuggets']={calcium:30,iron:1.2,zinc:1.5,magnesium:20,potassium:220,phosphorus:160,sodium:500,vitaminA:20,vitaminC:0,vitaminD:.1,vitaminE:1,vitaminK:2,folate:10,vitaminB12:.3,cholesterol:50}; MICRO['Veg cheese nuggets']={calcium:100,iron:1.2,zinc:1,magnesium:25,potassium:180,phosphorus:120,sodium:550,vitaminA:80,vitaminC:2,vitaminD:.1,vitaminE:1,vitaminK:2,folate:20,vitaminB12:.3,cholesterol:10};
+MICRO['Whey protein (generic)']={calcium:500,iron:.5,zinc:2,magnesium:60,potassium:450,phosphorus:400,sodium:250,vitaminA:20,vitaminC:0,vitaminD:0,vitaminE:0,vitaminK:0,folate:20,vitaminB12:1,cholesterol:30};
+MICRO['My Whey - 30g protein scoop (45g label)']={calcium:500,iron:.5,zinc:2,magnesium:60,potassium:450,phosphorus:400,sodium:250,vitaminA:20,vitaminC:0,vitaminD:0,vitaminE:0,vitaminK:0,folate:20,vitaminB12:1,cholesterol:30};
+MICRO['My Whey - 25g protein scoop (36g label)']={...MICRO['My Whey - 30g protein scoop (45g label)'],sodium:473.4,cholesterol:146.2};
+
+
+const MICRO_SOURCE={
+ 'Milky Mist Probiotic Greek Yogurt - label':'🏷️ Product label/listing: calcium 180 mg, sodium 67 mg and cholesterol 6 mg/100 g; other micros are reference estimates.',
+ 'Jersey Super Soft Paneer - label':'🏷️ Product listing: calcium 440 mg, sodium 24.3 mg and cholesterol 14 mg/100 g; other micros are reference estimates.',
+ 'Milky Mist Briyas Tofu - label':'📚 No full micronutrient panel found in the available product data; reference tofu values are used.',
+ 'Eggoz White Protein Rich Egg - label':'🏷️ Manufacturer information: vitamin A, D and B12 are aligned to published Eggoz values; other micros are reference egg values.',
+ 'Saffola Peanut Butter with Jaggery':'🏷️ Product listing: sodium, potassium, zinc, magnesium and phosphorus are published values; other micros are reference estimates.',
+ 'My Whey - 25g protein scoop (36g label)':'🏷️ MuscleBlaze product nutrition: sodium 473.4 mg and cholesterol 146.2 mg/100 g; other micros are reference whey estimates.'
+};
+
 let S=JSON.parse(localStorage.getItem("myPT")||'{"p":100,"c":1900,"f":60,"ch":240,"fi":25,"days":{},"custom":[],"meals":{}}');
 if(S.f==null)S.f=60; if(S.ch==null)S.ch=240; if(S.fi==null)S.fi=25; if(!Array.isArray(S.favorites))S.favorites=[]; if(!Array.isArray(S.recent))S.recent=[]; if(!S.lastQty||typeof S.lastQty!=='object')S.lastQty={};
 const todayKey=()=>new Date().toISOString().slice(0,10);
@@ -293,15 +415,15 @@ function changeTodayDate(delta){
  const dt=new Date(todayViewDate+'T12:00:00'); dt.setDate(dt.getDate()+delta);
  const k=dt.toISOString().slice(0,10), now=todayKey();
  if(k>now)return;
- todayViewDate=k; selectedDate=k; renderToday();
+ todayViewDate=k; selectedDate=k; renderToday(); if(!document.getElementById('micros').classList.contains('hidden'))renderMicronutrients();
 }
-function resetTodayDate(){todayViewDate=todayKey();selectedDate=todayViewDate;renderToday();}
+function resetTodayDate(){todayViewDate=todayKey();selectedDate=todayViewDate;renderToday(); if(!document.getElementById('micros').classList.contains('hidden'))renderMicronutrients();}
 
 function tab(id,b){
  document.querySelectorAll("section").forEach(x=>x.classList.add("hidden"));
  document.getElementById(id).classList.remove("hidden");
  document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on")); b.classList.add("on");
- if(id==="today")renderToday();
+ if(id==="today")renderToday(); if(id==="micros")renderMicronutrients();
  if(id==="add"){addDate.value=selectedDate;opts()}
  if(id==="history"){histDate.value=selectedDate;renderHistoryDay();renderHistorySummary()} if(id==="trends")renderTrends(); if(id==="settings"){renderBackupHealth();renderAutoSnapshot();}
  if(id==="custom")customList();
@@ -350,7 +472,7 @@ function opts(){
  let q=(search.value||'').toLowerCase(), s=food; s.innerHTML='';
  arr().forEach((x,i)=>{if(x[0].toLowerCase().includes(q)){let o=document.createElement('option');o.value=i;o.text=x[0];s.add(o)}}); if(s.options.length) s.selectedIndex=0; prev(); updateFavButton(); renderQuickFoods();
 }
-function prev(){let f=arr()[+food.value||0],q=+qty.value||0,u=unit.value||'g';if(!f)return;let g=gramsFor(f,q,u);unitHint.textContent=unitText(f,u);preview.textContent=(f[1]*g/100).toFixed(1)+' g protein • '+Math.round(f[2]*g/100)+' kcal • '+(f[5]*g/100).toFixed(1)+' g fibre'}
+function prev(){let f=arr()[+food.value||0],q=+qty.value||0,u=unit.value||'g';if(!f)return;let g=gramsFor(f,q,u);unitHint.textContent=unitText(f,u);preview.textContent=(f[1]*g/100).toFixed(1)+' g protein • '+Math.round(f[2]*g/100)+' kcal • '+(f[5]*g/100).toFixed(1)+' g fibre';renderMicroPreview()}
 function addOrUpdate(){
  let f=arr()[+food.value],q=+qty.value||0,u=unit.value||'g',d=selectedDate||todayKey();
  if(!q||!f){alert('Choose a food and amount.');return}
@@ -647,6 +769,42 @@ function renderRedFlagFoods(a,t,d){
  }).join('');
  el.innerHTML=`<h3 style="margin-bottom:4px">🚦 Red-flag foods</h3><div class="small">Top contributors on ${formatTodayViewDate(d)}. These foods are contributors to the total, not the only cause of the overage.</div><div class="redFlagGrid">${cards}</div>`;
 }
+function microValueForEntry(x,key){
+ const m=MICRO[x?.name]; if(!m)return null;
+ return (Number(m[key])||0)*(Number(x.g)||0)/100;
+}
+function microTotals(a){
+ const out={}; Object.keys(MICRO_TARGETS).forEach(k=>out[k]=0); let mapped=0,unmapped=[];
+ a.forEach(x=>{const m=MICRO[x?.name]; if(!m){unmapped.push(x?.name||'Food');return;} mapped++; Object.keys(out).forEach(k=>out[k]+=microValueForEntry(x,k)||0);});
+ return {out,mapped,unmapped,total:a.length};
+}
+function microDateLabel(d){return formatTodayViewDate(d)}
+function changeMicroDate(delta){const dt=new Date((todayViewDate||todayKey())+'T12:00:00');dt.setDate(dt.getDate()+delta);const k=dt.toISOString().slice(0,10),now=todayKey();if(k>now)return;todayViewDate=k;selectedDate=k;renderMicronutrients();}
+function resetMicroDate(){todayViewDate=todayKey();selectedDate=todayViewDate;renderMicronutrients();}
+function microFmt(v,unit){if(unit==='mg')return v>=100?Math.round(v):v.toFixed(1);if(unit==='µg')return v>=100?Math.round(v):v.toFixed(2);return v.toFixed(2)}
+function microBarClass(p,goal){if(!goal)return p>100?'red':p>80?'yellow':'';return p<50?'red':p<80?'yellow':'';}
+function renderMicronutrients(){
+ const d=todayViewDate||todayKey(),a=getDay(d),r=microTotals(a);
+ const title=document.getElementById('microDateTitle'),sub=document.getElementById('microDateSub'),next=document.getElementById('nextMicroBtn');
+ if(!title)return; title.textContent=microDateLabel(d); sub.textContent=new Date(d+'T12:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}); next.disabled=d===todayKey();next.style.opacity=d===todayKey()?'.45':'1';
+ const cov=document.getElementById('microCoverage');
+ if(!a.length)cov.innerHTML='<b>No foods logged for this date.</b><div class="small" style="margin-top:3px">Add food entries to calculate micronutrients.</div>';
+ else if(r.unmapped.length)cov.innerHTML=`<b>Micronutrient coverage: ${r.mapped}/${r.total} food entries</b><div class="small" style="margin-top:3px">${r.unmapped.length} ${r.unmapped.length===1?'entry is':'entries are'} not yet in the micronutrient database. Protein/calorie tracking is unaffected. You can still use the available micronutrient totals below.</div>`;
+ else cov.innerHTML=`<b>Micronutrient coverage: ${r.mapped}/${r.total} food entries ✓</b><div class="small" style="margin-top:3px">All foods logged on this date have micronutrient estimates.</div>`;
+ const keys=['calcium','iron','zinc','magnesium','potassium','phosphorus','sodium','vitaminA','vitaminC','vitaminD','vitaminE','vitaminK','folate','vitaminB12','cholesterol'];
+ const cards=keys.map(k=>{const meta=MICRO_TARGETS[k],v=r.out[k]||0,p=Math.min(100,v/meta.target*100),cls=microBarClass(v/meta.target*100,meta.goal);return `<div class="microCard"><div class="microHead"><b>${meta.label}</b><span class="microPct">${Math.round(p)}%</span></div><div style="margin-top:5px"><b>${microFmt(v,meta.unit)}</b> <span class="small">/ ${meta.target} ${meta.unit}</span></div><div class="microBar"><div class="microFill ${cls}" style="width:${p}%"></div></div></div>`}).join('');
+ document.getElementById('microSummary').innerHTML=cards;
+ const branded=[...new Set(a.map(x=>x.name).filter(n=>MICRO_SOURCE[n]))];
+ const srcEl=document.getElementById('microSourceNote');
+ if(srcEl) srcEl.innerHTML=branded.length?'<b>🏷️ Branded-data notes</b><div class="small" style="margin-top:4px">'+branded.map(n=>'<div style="margin-top:3px">'+MICRO_SOURCE[n]+'</div>').join('')+'</div>':'<span class="small">Generic foods use reference food-composition estimates. Branded values are used where published.</span>';
+ const contributorKeys=['calcium','iron','zinc','magnesium','vitaminC','vitaminB12'];
+ document.getElementById('microFoods').innerHTML=contributorKeys.map(k=>{const meta=MICRO_TARGETS[k],rows=a.map(x=>({name:x.name||'Food',v:microValueForEntry(x,k)||0})).filter(x=>x.v>0).sort((x,y)=>y.v-x.v).slice(0,3);if(!rows.length)return '';return `<div class="microGroupTitle">${meta.label}</div>`+rows.map(x=>`<div class="microFood"><b>${x.name}</b><div class="small">${microFmt(x.v,meta.unit)} ${meta.unit} • ${(x.v/(r.out[k]||1)*100).toFixed(0)}% of your day's logged ${meta.label.toLowerCase()}</div></div>`).join('')}).join('');
+ const allRows=keys.map(k=>{const meta=MICRO_TARGETS[k],v=r.out[k]||0;return `<div class="row"><div><b>${meta.label}</b><div class="small">${meta.goal?'Reference intake target':'Upper/reference limit'}</div></div><div><b>${microFmt(v,meta.unit)} ${meta.unit}</b><div class="small">/ ${meta.target} ${meta.unit}</div></div></div>`}).join('');
+ document.getElementById('allMicroRows').innerHTML=allRows;
+}
+function renderMicroPreview(){
+ const el=document.getElementById('microPreview');if(!el)return;const f=arr()[+food.value||0],q=+qty.value||0,u=unit.value||'g';if(!f||!q){el.innerHTML='';return;}const g=gramsFor(f,q,u),m=MICRO[f[0]];if(!m){el.innerHTML='<span class="small">🧬 Micronutrients: this food is not yet mapped. Protein/calorie values will still be tracked.</span>';return;}const keys=['calcium','iron','zinc','magnesium','vitaminC','vitaminB12'];const text=keys.map(k=>{const meta=MICRO_TARGETS[k],v=(Number(m[k])||0)*g/100;return `${meta.label} ${microFmt(v,meta.unit)}${meta.unit}`}).join(' • ');el.innerHTML='<b>🧬 Micronutrients for this amount</b><div class="small" style="margin-top:4px">'+text+'</div>';}
+
 function renderToday(){
  let d=todayViewDate||todayKey(),a=getDay(d),t=totals(a);
  todayDateTitle.textContent=formatTodayViewDate(d);
@@ -1074,7 +1232,7 @@ function ensurePresetMeals(){
 // PWA update helper: register the versioned service worker and let a new worker take over immediately.
 (function setupPwaUpdates(){
   if(!('serviceWorker' in navigator)) return;
-  const SW_VERSION='v43';
+  const SW_VERSION='v44';
   let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
     if(reloaded) return;
