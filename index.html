@@ -304,6 +304,10 @@ const B=[
 ["Palak with egg poriyal",7.5,110,7,4,2],
 ["Aloo samosa - big",5.0,260,14,29,3],
 ["Dal vada",10.0,290,15,30,6],
+["Biryani - Chicken (approx, cooked)",7.2,168,6.5,20.5,1.2],
+["Biryani - Egg (approx, cooked)",5.8,152,5.0,19.0,1.1],
+["Biryani - Veg (approx, cooked)",3.8,135,4.2,20.5,2.0],
+["Biryani - Mutton (approx, cooked)",8.0,205,9.0,19.5,1.2],
 ["Chicken nuggets",15.0,296,18,18,1.5],
 ["Veg cheese nuggets",9.86,279.54,12.95,30.3,0]]
 
@@ -362,6 +366,11 @@ const MICRO={
 'Prawns, peeled (cooked)':{calcium:70,iron:2.0,zinc:1.5,magnesium:45,potassium:220,phosphorus:240,sodium:111,vitaminA:0,vitaminC:0,vitaminD:0.2,vitaminE:1.5,vitaminK:0.3,folate:25,vitaminB12:1.1,cholesterol:189},
 'Mutton, boneless (cooked; approx)':{calcium:12,iron:2.1,zinc:5.0,magnesium:21,potassium:260,phosphorus:180,sodium:60,vitaminA:0,vitaminC:0,vitaminD:.1,vitaminE:.2,vitaminK:4,folate:8,vitaminB12:2.5,cholesterol:90},
 'Chicken liver (cooked)':{calcium:11,iron:9.0,zinc:3.3,magnesium:24,potassium:230,phosphorus:332,sodium:94,vitaminA:9449,vitaminC:17.9,vitaminD:.2,vitaminE:.7,vitaminK:3.2,folate:560,vitaminB12:16.6,cholesterol:564},
+'Biryani - Chicken (approx, cooked)':{calcium:45,iron:1.8,zinc:1.3,magnesium:25,potassium:190,phosphorus:135,sodium:380,vitaminA:45,vitaminC:1.5,vitaminD:.4,vitaminE:.7,vitaminK:2.5,folate:35,vitaminB12:.25,cholesterol:42},
+'Biryani - Egg (approx, cooked)':{calcium:48,iron:1.4,zinc:1.1,magnesium:22,potassium:180,phosphorus:125,sodium:360,vitaminA:90,vitaminC:1.5,vitaminD:1.0,vitaminE:.7,vitaminK:2.5,folate:40,vitaminB12:.7,cholesterol:125},
+'Biryani - Veg (approx, cooked)':{calcium:30,iron:1.2,zinc:.8,magnesium:24,potassium:190,phosphorus:90,sodium:350,vitaminA:70,vitaminC:4,vitaminD:0,vitaminE:.7,vitaminK:8,folate:45,vitaminB12:0,cholesterol:0},
+'Biryani - Mutton (approx, cooked)':{calcium:25,iron:1.7,zinc:2.0,magnesium:22,potassium:185,phosphorus:145,sodium:360,vitaminA:30,vitaminC:1,vitaminD:.2,vitaminE:.5,vitaminK:2,folate:25,vitaminB12:1.2,cholesterol:55},
+
 'Milky Mist Probiotic Greek Yogurt - label':{...{'calcium':110,'iron':.05,'zinc':.6,'magnesium':11,'potassium':140,'phosphorus':135,'sodium':45,'vitaminA':30,'vitaminC':.5,'vitaminD':.1,'vitaminE':.1,'vitaminK':.2,'folate':7,'vitaminB12':.7,'cholesterol':8},calcium:180,sodium:67,cholesterol:6},
 'Jersey Super Soft Paneer - label':{...{'calcium':208,'iron':.2,'zinc':2.1,'magnesium':8,'potassium':71,'phosphorus':138,'sodium':22,'vitaminA':210,'vitaminC':0,'vitaminD':.2,'vitaminE':.2,'vitaminK':2,'folate':6,'vitaminB12':1.2,'cholesterol':56},calcium:440,sodium:24.3,cholesterol:14},
 'Milky Mist Briyas Tofu - label':{calcium:350,iron:5.4,zinc:1,magnesium:60,potassium:120,phosphorus:97,sodium:15,vitaminA:0,vitaminC:.2,vitaminD:0,vitaminE:.01,vitaminK:2.4,folate:29,vitaminB12:0,cholesterol:0},
@@ -395,7 +404,7 @@ MICRO['My Whey - 30g protein scoop (45g label)']={calcium:500,iron:.5,zinc:2,mag
 MICRO['My Whey - 25g protein scoop (36g label)']={...MICRO['My Whey - 30g protein scoop (45g label)'],sodium:473.4,cholesterol:146.2};
 
 
-// V49 food audit: obvious portion/macro outliers were corrected using component-based calculations and Indian reference ranges.
+// V50 food audit + biryani additions: obvious portion/macro outliers were corrected using component-based calculations and Indian reference ranges.
 const FOOD_AUDIT={
  'Egg Dosa (1 egg + 1 plain dosa)':'Serving is defined as 130 g: 1 standard egg (~6.5 g protein) + 1 plain dosa (~2.7 g protein). Approx. 9.2 g protein per serving; actual size/oil can vary.',
  'Chicken leg, boneless, skinless (raw)':'Adjusted from an implausible 384 kcal/100 g to an approximate 190 kcal/100 g raw value; actual cut/skin varies.',
@@ -452,7 +461,7 @@ function tab(id,b){
 }
 function setDateFromAdd(){selectedDate=addDate.value||todayKey()}
 const UNIT={
- 'My Whey - 30g protein scoop (45g label)':{serving:45},'My Whey - 25g protein scoop (36g label)':{serving:36},'Egg, whole':{piece:50},'Egg white':{piece:30},'Almonds':{piece:1.2},'Dates':{piece:7},'Chapati':{piece:40},'Idli':{piece:50},'Dosa':{piece:80},'Banana':{piece:100},'Banana - small':{piece:80},'Banana - medium':{piece:100},'Banana - large':{piece:120},'Apple':{piece:180},'Apple - small':{piece:150},'Apple - medium':{piece:180},'Apple - large':{piece:220},'Orange':{piece:130},'Orange - small':{piece:100},'Orange - medium':{piece:130},'Orange - large':{piece:180},'Guava':{piece:100},'Guava - small':{piece:80},'Guava - medium':{piece:120},'Guava - large':{piece:180},'Avocado':{piece:150},'Brown rice (cooked)':{bowl:180,cup:195},'White rice (cooked)':{bowl:180,cup:158},'Curd/yogurt':{bowl:200,cup:245},'Oats':{tbsp:6},'Muesli':{tbsp:8},'Yoga Bar Muesli 1 (label)':{tbsp:8},'Yoga Bar Muesli 2 - High Protein (label)':{tbsp:8},'My Muesli Mix (50:50 by weight)':{tbsp:8},'Mixed seeds':{tsp:5,tbsp:15},'Ghee':{tsp:5,tbsp:14},'Paneer':{bowl:150},'MyFitness Peanut Butter - Dark Chocolate':{tsp:5,tbsp:15},'Saffola Peanut Butter with Jaggery':{tsp:5,tbsp:15},'Multigrain bread (approx)':{piece:30},'Peanut Butter Multigrain Bread Toast (1 slice + 1 tbsp PB)':{serving:100},'Peanut Butter Chapati Roll (1 chapati + 1 tbsp PB)':{serving:100},'Buttermilk (200 ml)':{ml:1,serving:200},'Lemon juice - half lemon':{serving:30,ml:30},'Cinnamon powder - 1 pinch':{serving:0.5},'Honey - 1 tsp (5g)':{tsp:5},'WOW Apple Cider Vinegar - 15 ml':{ml:1,serving:15},'Plix ACV tablet':{piece:1},'Green tea - unsweetened 200 ml':{ml:1,serving:200},'Milky Mist Probiotic Greek Yogurt - label':{bowl:200,cup:245},'Jersey Super Soft Paneer - label':{bowl:150},'Milky Mist Briyas Tofu - label':{bowl:150},'Eggoz White Protein Rich Egg - label':{piece:50},'Egg Dosa (1 egg + 1 plain dosa)':{serving:130},'Steamed Idli':{piece:50},'Peanut chutney':{tbsp:15},'Coriander chutney':{tbsp:15},'Coconut chutney':{tbsp:15},'Toor dal sambar':{bowl:200,cup:240},'Moong dal tadka':{bowl:200,cup:240},'Sona/Kurnool rice (steamed/cooked)':{bowl:180,cup:158},'Egg curry (1 egg + gravy)':{serving:150},'Sweet corn on cob, boiled (medium, edible portion)':{piece:120},'Black sesame coconut chutney':{tbsp:15},'Egg bhurji (2 eggs + vegetables + 1 tsp oil)':{serving:140},'Paneer bhurji (100g paneer + vegetables + 1 tsp oil)':{serving:150},'Salad bowl (custom)':{bowl:300},'Pomegranate arils':{bowl:150,cup:174,piece:174},'Papaya':{bowl:250,cup:145},'Pineapple':{bowl:250,cup:165},'Green grapes':{bowl:150,cup:150,piece:5},'Potato fry':{bowl:180,cup:160},'Ladies finger (okra)':{bowl:150,cup:130},'Palak with egg poriyal':{bowl:200,cup:180},'Aloo samosa - big':{piece:120,serving:120},'Dal vada':{piece:60,serving:60},'Chicken nuggets':{piece:20,serving:100},'Veg cheese nuggets':{piece:25,serving:100}
+ 'My Whey - 30g protein scoop (45g label)':{serving:45},'My Whey - 25g protein scoop (36g label)':{serving:36},'Egg, whole':{piece:50},'Egg white':{piece:30},'Almonds':{piece:1.2},'Dates':{piece:7},'Chapati':{piece:40},'Idli':{piece:50},'Dosa':{piece:80},'Banana':{piece:100},'Banana - small':{piece:80},'Banana - medium':{piece:100},'Banana - large':{piece:120},'Apple':{piece:180},'Apple - small':{piece:150},'Apple - medium':{piece:180},'Apple - large':{piece:220},'Orange':{piece:130},'Orange - small':{piece:100},'Orange - medium':{piece:130},'Orange - large':{piece:180},'Guava':{piece:100},'Guava - small':{piece:80},'Guava - medium':{piece:120},'Guava - large':{piece:180},'Avocado':{piece:150},'Brown rice (cooked)':{bowl:180,cup:195},'White rice (cooked)':{bowl:180,cup:158},'Curd/yogurt':{bowl:200,cup:245},'Oats':{tbsp:6},'Muesli':{tbsp:8},'Yoga Bar Muesli 1 (label)':{tbsp:8},'Yoga Bar Muesli 2 - High Protein (label)':{tbsp:8},'My Muesli Mix (50:50 by weight)':{tbsp:8},'Mixed seeds':{tsp:5,tbsp:15},'Ghee':{tsp:5,tbsp:14},'Paneer':{bowl:150},'MyFitness Peanut Butter - Dark Chocolate':{tsp:5,tbsp:15},'Saffola Peanut Butter with Jaggery':{tsp:5,tbsp:15},'Multigrain bread (approx)':{piece:30},'Peanut Butter Multigrain Bread Toast (1 slice + 1 tbsp PB)':{serving:100},'Peanut Butter Chapati Roll (1 chapati + 1 tbsp PB)':{serving:100},'Buttermilk (200 ml)':{ml:1,serving:200},'Lemon juice - half lemon':{serving:30,ml:30},'Cinnamon powder - 1 pinch':{serving:0.5},'Honey - 1 tsp (5g)':{tsp:5},'WOW Apple Cider Vinegar - 15 ml':{ml:1,serving:15},'Plix ACV tablet':{piece:1},'Green tea - unsweetened 200 ml':{ml:1,serving:200},'Milky Mist Probiotic Greek Yogurt - label':{bowl:200,cup:245},'Jersey Super Soft Paneer - label':{bowl:150},'Milky Mist Briyas Tofu - label':{bowl:150},'Eggoz White Protein Rich Egg - label':{piece:50},'Egg Dosa (1 egg + 1 plain dosa)':{serving:130},'Steamed Idli':{piece:50},'Peanut chutney':{tbsp:15},'Coriander chutney':{tbsp:15},'Coconut chutney':{tbsp:15},'Toor dal sambar':{bowl:200,cup:240},'Moong dal tadka':{bowl:200,cup:240},'Sona/Kurnool rice (steamed/cooked)':{bowl:180,cup:158},'Egg curry (1 egg + gravy)':{serving:150},'Sweet corn on cob, boiled (medium, edible portion)':{piece:120},'Black sesame coconut chutney':{tbsp:15},'Egg bhurji (2 eggs + vegetables + 1 tsp oil)':{serving:140},'Paneer bhurji (100g paneer + vegetables + 1 tsp oil)':{serving:150},'Salad bowl (custom)':{bowl:300},'Pomegranate arils':{bowl:150,cup:174,piece:174},'Papaya':{bowl:250,cup:145},'Pineapple':{bowl:250,cup:165},'Green grapes':{bowl:150,cup:150,piece:5},'Potato fry':{bowl:180,cup:160},'Ladies finger (okra)':{bowl:150,cup:130},'Palak with egg poriyal':{bowl:200,cup:180},'Aloo samosa - big':{piece:120,serving:120},'Dal vada':{piece:60,serving:60},'Biryani - Chicken (approx, cooked)':{serving:250},'Biryani - Egg (approx, cooked)':{serving:250},'Biryani - Veg (approx, cooked)':{serving:250},'Biryani - Mutton (approx, cooked)':{serving:250},'Chicken nuggets':{piece:20,serving:100},'Veg cheese nuggets':{piece:25,serving:100}
 };
 function gramsFor(f,q,u){
  let g=q;
@@ -509,7 +518,7 @@ function opts(){
  refreshUnitOptions(false);
  prev(); updateFavButton(); renderQuickFoods();
 }
-function prev(){let f=arr()[+food.value||0],q=+qty.value||0,u=unit.value||'g';if(!f)return;let g=gramsFor(f,q,u);unitHint.textContent=unitText(f,u);preview.textContent=(f[1]*g/100).toFixed(1)+' g protein • '+Math.round(f[2]*g/100)+' kcal • '+(f[5]*g/100).toFixed(1)+' g fibre'; if(f[0]==='Egg Dosa (1 egg + 1 plain dosa)'){ preview.textContent += ' • 1 serving = 1 egg + 1 plain dosa'; } renderMicroPreview()}
+function prev(){let f=arr()[+food.value||0],q=+qty.value||0,u=unit.value||'g';if(!f)return;let g=gramsFor(f,q,u);unitHint.textContent=unitText(f,u);preview.textContent=(f[1]*g/100).toFixed(1)+' g protein • '+Math.round(f[2]*g/100)+' kcal • '+(f[5]*g/100).toFixed(1)+' g fibre'; if(f[0]==='Egg Dosa (1 egg + 1 plain dosa)'){ preview.textContent += ' • 1 serving = 1 egg + 1 plain dosa'; } if(f[0].startsWith('Biryani - ')){ preview.textContent += ' • 1 serving ≈ 250 g'; } renderMicroPreview()}
 function addOrUpdate(){
  let f=arr()[+food.value],q=+qty.value||0,u=unit.value||'g',d=selectedDate||todayKey();
  if(!q||!f){alert('Choose a food and amount.');return}
@@ -1351,7 +1360,7 @@ function ensurePresetMeals(){
 // PWA update helper: register the versioned service worker and let a new worker take over immediately.
 (function setupPwaUpdates(){
   if(!('serviceWorker' in navigator)) return;
-  const SW_VERSION='v48';
+  const SW_VERSION='v50';
   let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
     if(reloaded) return;
