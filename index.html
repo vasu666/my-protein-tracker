@@ -272,7 +272,7 @@ const B=[
 ["WOW Apple Cider Vinegar - 15 ml",0,3,0,0.7,0], ["Plix ACV tablet",0,0,0,0,0], ["Green tea - unsweetened 200 ml",0,1,0,0.2,0],
 ["Chicken breast, boneless, skinless (raw)",21.8,168,9.0,0,0],["Chicken breast, boneless, skinless (cooked)",31,165,3.6,0,0],
 ["Chicken thigh, boneless, skinless (raw)",18.2,200,14.2,0,0],["Chicken thigh, boneless, skinless (cooked)",26,209,10.9,0,0],
-["Chicken leg, boneless, skinless (raw)",19.4,384,12.6,0,0],["Chicken leg, bone-in (raw, approx edible portion)",14,270,9,0,0],
+["Chicken leg, boneless, skinless (raw)",19.4,190,10.0,0,0],["Chicken leg, bone-in (raw, approx edible portion)",18,190,10,0,0],
 ["Chicken, bone-in (cooked, approx edible portion)",21,190,8,0,0],
 ["Fish, rohu/rohu fillet (boneless, cooked)",22,140,5,0,0],["Fish, rohu (with bone, cooked; approx)",16,105,4,0,0],
 ["Pomfret (boneless, cooked; approx)",20,120,4,0,0],["Pomfret (with bone, cooked; approx)",15,90,3,0,0],
@@ -282,7 +282,7 @@ const B=[
 ["Jersey Super Soft Paneer - label",18.0,238.0,14.6,4.2,0],
 ["Milky Mist Briyas Tofu - label",15.5,135.0,5.0,6.9,0],
 ["Eggoz White Protein Rich Egg - label",13.01,153.61,10.93,0,0],
-["Egg Dosa (1 egg + 1 plain dosa)",14.5,172,7.0,17.5,1.0],
+["Egg Dosa (1 egg + 1 plain dosa)",7.08,160.0,5.85,17.69,0.62],
 ["Steamed Idli",6.0,145,1.0,30,2.0],
 ["Peanut chutney",8,250,18,12,4],
 ["Coriander chutney",3,80,4,10,4],
@@ -293,8 +293,8 @@ const B=[
 ["Egg curry (1 egg + gravy)",8,125,8.5,5,1.0],
 ["Sweet corn on cob, boiled (medium, edible portion)",3.4,96,1.5,21,2.4],
 ["Black sesame coconut chutney",7,300,25,12,5],
-["Egg bhurji (2 eggs + vegetables + 1 tsp oil)",14.5,220,15,4,1],
-["Paneer bhurji (100g paneer + vegetables + 1 tsp oil)",17,270,19,7,1.5],
+["Egg bhurji (2 eggs + vegetables + 1 tsp oil)",13.5,200,14.5,4,1],
+["Paneer bhurji (100g paneer + vegetables + 1 tsp oil)",18.0,255,19.5,7,1.5],
 ["Pomegranate arils",1.7,83,1.2,18.7,4.0],
 ["Papaya",0.5,43,0.3,10.8,1.7],
 ["Pineapple",0.5,50,0.1,13.1,1.4],
@@ -395,6 +395,14 @@ MICRO['My Whey - 30g protein scoop (45g label)']={calcium:500,iron:.5,zinc:2,mag
 MICRO['My Whey - 25g protein scoop (36g label)']={...MICRO['My Whey - 30g protein scoop (45g label)'],sodium:473.4,cholesterol:146.2};
 
 
+// V49 food audit: obvious portion/macro outliers were corrected using component-based calculations and Indian reference ranges.
+const FOOD_AUDIT={
+ 'Egg Dosa (1 egg + 1 plain dosa)':'Serving is defined as 130 g: 1 standard egg (~6.5 g protein) + 1 plain dosa (~2.7 g protein). Approx. 9.2 g protein per serving; actual size/oil can vary.',
+ 'Chicken leg, boneless, skinless (raw)':'Adjusted from an implausible 384 kcal/100 g to an approximate 190 kcal/100 g raw value; actual cut/skin varies.',
+ 'Chicken leg, bone-in (raw, approx edible portion)':'Adjusted to an approximate 190 kcal and 18 g protein/100 g edible portion; bone/skin and cut size can vary.',
+ 'Egg bhurji (2 eggs + vegetables + 1 tsp oil)':'Calculated approximately from 2 eggs + vegetables + 1 tsp oil; recipe size and oil can vary.',
+ 'Paneer bhurji (100g paneer + vegetables + 1 tsp oil)':'Calculated approximately from 100 g paneer + vegetables + 1 tsp oil; paneer brand and oil can vary.'
+};
 const MICRO_SOURCE={
  'Milky Mist Probiotic Greek Yogurt - label':'🏷️ Product label/listing: calcium 180 mg, sodium 67 mg and cholesterol 6 mg/100 g; other micros are reference estimates.',
  'Jersey Super Soft Paneer - label':'🏷️ Product listing: calcium 440 mg, sodium 24.3 mg and cholesterol 14 mg/100 g; other micros are reference estimates.',
@@ -481,11 +489,27 @@ function quickSelect(i){
 function updateFavButton(){ const n=arr()[+food.value]?.[0]; if(!n)return; const on=S.favorites.includes(n); favBtn.textContent=on?'★ Favorite':'☆ Favorite'; favHint.textContent=on?'Saved as favorite':''; }
 function toggleFavoriteSelected(){ const n=arr()[+food.value]?.[0]; if(!n)return; const i=S.favorites.indexOf(n); if(i>=0)S.favorites.splice(i,1);else S.favorites.push(n); save(); updateFavButton(); renderQuickFoods(); }
 function markRecent(n){ S.recent=[n,...S.recent.filter(x=>x!==n)].slice(0,12); }
+function allowedUnitsForFood(name){
+ const spec=UNIT[name]||{};
+ const keys=['g','ml','tsp','tbsp','piece','bowl','cup','serving'].filter(u=>u==='g'||spec[u]!=null);
+ // Combination/recipe foods should not expose arbitrary household units.
+ if(name==='Egg Dosa (1 egg + 1 plain dosa)') return ['g','serving'];
+ return keys.length?keys:['g'];
+}
+function refreshUnitOptions(preserve=true){
+ const f=arr()[+food.value||0]; if(!f||!unit)return;
+ const allowed=allowedUnitsForFood(f[0]); const current=unit.value;
+ unit.innerHTML=allowed.map(u=>{const labels={g:'g',ml:'ml',tsp:'teaspoon',tbsp:'tablespoon',piece:'piece',bowl:'bowl',cup:'cup',serving:'serving'}; return `<option value="${u}">${labels[u]}</option>`}).join('');
+ unit.value=(preserve&&allowed.includes(current))?current:allowed[0];
+}
 function opts(){
  let q=(search.value||'').toLowerCase(), s=food; s.innerHTML='';
- arr().forEach((x,i)=>{if(x[0].toLowerCase().includes(q)){let o=document.createElement('option');o.value=i;o.text=x[0];s.add(o)}}); if(s.options.length) s.selectedIndex=0; prev(); updateFavButton(); renderQuickFoods();
+ arr().forEach((x,i)=>{if(x[0].toLowerCase().includes(q)){let o=document.createElement('option');o.value=i;o.text=x[0];s.add(o)}});
+ if(s.options.length) s.selectedIndex=0;
+ refreshUnitOptions(false);
+ prev(); updateFavButton(); renderQuickFoods();
 }
-function prev(){let f=arr()[+food.value||0],q=+qty.value||0,u=unit.value||'g';if(!f)return;let g=gramsFor(f,q,u);unitHint.textContent=unitText(f,u);preview.textContent=(f[1]*g/100).toFixed(1)+' g protein • '+Math.round(f[2]*g/100)+' kcal • '+(f[5]*g/100).toFixed(1)+' g fibre';renderMicroPreview()}
+function prev(){let f=arr()[+food.value||0],q=+qty.value||0,u=unit.value||'g';if(!f)return;let g=gramsFor(f,q,u);unitHint.textContent=unitText(f,u);preview.textContent=(f[1]*g/100).toFixed(1)+' g protein • '+Math.round(f[2]*g/100)+' kcal • '+(f[5]*g/100).toFixed(1)+' g fibre'; if(f[0]==='Egg Dosa (1 egg + 1 plain dosa)'){ preview.textContent += ' • 1 serving = 1 egg + 1 plain dosa'; } renderMicroPreview()}
 function addOrUpdate(){
  let f=arr()[+food.value],q=+qty.value||0,u=unit.value||'g',d=selectedDate||todayKey();
  if(!q||!f){alert('Choose a food and amount.');return}
