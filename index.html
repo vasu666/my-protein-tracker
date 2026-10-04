@@ -424,7 +424,7 @@ const MICRO_SOURCE={
 
 let S=JSON.parse(localStorage.getItem("myPT")||'{"p":100,"c":1900,"f":60,"ch":240,"fi":25,"days":{},"custom":[],"meals":{}}');
 if(S.f==null)S.f=60; if(S.ch==null)S.ch=240; if(S.fi==null)S.fi=25; if(!Array.isArray(S.favorites))S.favorites=[]; if(!Array.isArray(S.recent))S.recent=[]; if(!S.lastQty||typeof S.lastQty!=='object')S.lastQty={};
-const todayKey=()=>new Date().toISOString().slice(0,10);
+const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
 const getDay=(d)=>S.days[d]||(S.days[d]=[]);
 const arr=()=>B.concat(S.custom);
 const save=()=>{ try{ const prev=localStorage.getItem("myPT"); if(prev){ const now=todayKey(); let snap=null; try{snap=JSON.parse(localStorage.getItem("myPT_dailySnapshot")||"null")}catch(e){} if(!snap||snap.date!==now){ localStorage.setItem("myPT_dailySnapshot",JSON.stringify({date:now,savedAt:new Date().toISOString(),data:JSON.parse(prev)})); } } }catch(e){} localStorage.setItem("myPT",JSON.stringify(S)); try{ if(document.getElementById("trends")&&!document.getElementById("trends").classList.contains("hidden")) renderTrends(); }catch(e){} };
@@ -443,7 +443,7 @@ function formatTodayViewDate(d){
 }
 function changeTodayDate(delta){
  const dt=new Date(todayViewDate+'T12:00:00'); dt.setDate(dt.getDate()+delta);
- const k=dt.toISOString().slice(0,10), now=todayKey();
+ const k=dayKeyFromDate(dt), now=todayKey();
  if(k>now)return;
  todayViewDate=k; selectedDate=k; renderToday(); if(!document.getElementById('micros').classList.contains('hidden'))renderMicronutrients();
 }
@@ -827,7 +827,7 @@ function microTotals(a){
  return {out,mapped,unmapped,total:a.length};
 }
 function microDateLabel(d){return formatTodayViewDate(d)}
-function changeMicroDate(delta){const dt=new Date((todayViewDate||todayKey())+'T12:00:00');dt.setDate(dt.getDate()+delta);const k=dt.toISOString().slice(0,10),now=todayKey();if(k>now)return;todayViewDate=k;selectedDate=k;renderMicronutrients();}
+function changeMicroDate(delta){const dt=new Date((todayViewDate||todayKey())+'T12:00:00');dt.setDate(dt.getDate()+delta);const k=dayKeyFromDate(dt),now=todayKey();if(k>now)return;todayViewDate=k;selectedDate=k;renderMicronutrients();}
 function resetMicroDate(){todayViewDate=todayKey();selectedDate=todayViewDate;renderMicronutrients();}
 function microFmt(v,unit){if(unit==='mg')return v>=100?Math.round(v):v.toFixed(1);if(unit==='µg')return v>=100?Math.round(v):v.toFixed(2);return v.toFixed(2)}
 function microBarClass(p,goal){if(!goal)return p>100?'red':p>80?'yellow':'';return p<50?'red':p<80?'yellow':'';}
@@ -835,7 +835,7 @@ function microPeriodDays(endDate,count){
  const out=[]; const end=new Date(endDate+'T12:00:00');
  for(let i=0;i<count;i++){
   const dt=new Date(end); dt.setDate(end.getDate()-i);
-  const k=dt.toISOString().slice(0,10); const a=S.days[k]||[];
+  const k=dayKeyFromDate(dt); const a=S.days[k]||[];
   if(a.length)out.push({date:k,a});
  }
  return out;
@@ -972,7 +972,7 @@ function goAddCategory(cat,d){
 function showCopyPreviousOptions(){
  const target=histDate.value||todayKey();
  const dt=new Date(target+'T12:00:00'); dt.setDate(dt.getDate()-1);
- const source=dt.toISOString().slice(0,10), src=getDay(source);
+ const source=dayKeyFromDate(dt), src=getDay(source);
  if(!src.length){alert('There are no foods logged on the previous day ('+source+').');return;}
  let box=document.getElementById('copyOptions');
  if(!box){box=document.createElement('div');box.id='copyOptions';box.className='card';document.getElementById('history').insertBefore(box,document.getElementById('history').children[1]);}
@@ -1021,13 +1021,13 @@ function renderHistoryDay(){
 function delHistory(i,d){getDay(d).splice(i,1);save();renderHistoryDay();renderHistorySummary()}
 function renderHistorySummary(){
  let vals=[],days=0,hit=0;
- for(let i=6;i>=0;i--){let dt=new Date();dt.setDate(dt.getDate()-i);let d=dt.toISOString().slice(0,10),p=totals(getDay(d)).p;vals.push(p);if(p>0)days++;if(p>=S.p)hit++}
+ for(let i=6;i>=0;i--){let dt=new Date();dt.setDate(dt.getDate()-i);let d=dayKeyFromDate(dt),p=totals(getDay(d)).p;vals.push(p);if(p>0)days++;if(p>=S.p)hit++}
  weekAvg.textContent=(vals.reduce((a,b)=>a+b,0)/7).toFixed(1);hitDays.textContent=hit;weekHigh.textContent=Math.max(...vals).toFixed(1);weekLow.textContent=Math.min(...vals).toFixed(1);
- let rows=[];for(let i=0;i<30;i++){let dt=new Date();dt.setDate(dt.getDate()-i);let d=dt.toISOString().slice(0,10),t=totals(getDay(d));rows.push(`<div class=row><div><b>${d}</b><div class=small>${getDay(d).length?getDay(d).length+" items":"No entry"}</div></div><span class="${t.p>=S.p?'good':t.p?'bad':''}">${t.p.toFixed(1)} g P • ${Math.round(t.c)} kcal</span></div>`)}
+ let rows=[];for(let i=0;i<30;i++){let dt=new Date();dt.setDate(dt.getDate()-i);let d=dayKeyFromDate(dt),t=totals(getDay(d));rows.push(`<div class=row><div><b>${d}</b><div class=small>${getDay(d).length?getDay(d).length+" items":"No entry"}</div></div><span class="${t.p>=S.p?'good':t.p?'bad':''}">${t.p.toFixed(1)} g P • ${Math.round(t.c)} kcal</span></div>`)}
  historyTable.innerHTML=rows.join("")
 }
 
-function dayKeyFromDate(dt){return dt.toISOString().slice(0,10)}
+function dayKeyFromDate(dt){return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`}
 function monthKey(dt){return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")}
 function monthLabel(key){let [y,m]=key.split("-");return new Date(+y,+m-1,1).toLocaleString("en-IN",{month:"short",year:"numeric"})}
 function weekStart(dt){let d=new Date(dt);let day=d.getDay();let diff=(day+6)%7;d.setDate(d.getDate()-diff);d.setHours(0,0,0,0);return d}
@@ -1362,7 +1362,7 @@ function ensurePresetMeals(){
 // PWA update helper: register the versioned service worker and let a new worker take over immediately.
 (function setupPwaUpdates(){
   if(!('serviceWorker' in navigator)) return;
-  const SW_VERSION='v50';
+  const SW_VERSION='v52';
   let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
     if(reloaded) return;
