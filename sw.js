@@ -1,4 +1,4 @@
-const VERSION='v52';
+const VERSION='v53';
 const CACHE=`pt-${VERSION}`;
 const APP_SHELL=['./','./index.html','./manifest.json','./icon.svg'];
 
