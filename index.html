@@ -480,7 +480,7 @@ const UNIT={
 };
 function gramsFor(f,q,u){
  let g=q;
- let spec=UNIT[f[0]]||{};
+ let spec=unitSpecForFood(f[0]);
  if(u==='ml') g=q*(spec.ml||f[6]||1);
  else if(u==='tsp') g=q*(spec.tsp||f[7]||5);
  else if(u==='tbsp') g=q*(spec.tbsp||f[8]||15);
@@ -491,7 +491,8 @@ function gramsFor(f,q,u){
  return g;
 }
 function unitText(f,u){
- if(u==='g') return 'grams'; if(u==='ml') return 'ml'; if(u==='tsp') return '≈ '+(f[7]||5)+' g/tsp'; if(u==='tbsp') return '≈ '+(f[8]||15)+' g/tbsp'; if(u==='piece') return '≈ '+(f[9]||f[6]||50)+' g/piece'; if(u==='bowl') return '≈ '+(f[10]||250)+' g/bowl'; if(u==='cup') return '≈ '+(f[11]||180)+' g/cup'; return '≈ '+(f[12]||100)+' g/serving';
+ const spec=unitSpecForFood(f[0]);
+ if(u==='g') return 'grams'; if(u==='ml') return 'ml'; if(u==='tsp') return '≈ '+(spec.tsp||f[7]||5)+' g/tsp'; if(u==='tbsp') return '≈ '+(spec.tbsp||f[8]||15)+' g/tbsp'; if(u==='piece') return '≈ '+(spec.piece||f[9]||f[6]||50)+' g/piece'; if(u==='bowl') return '≈ '+(spec.bowl||f[10]||250)+' g/bowl'; if(u==='cup') return '≈ '+(spec.cup||f[11]||180)+' g/cup'; return '≈ '+(spec.serving||f[12]||100)+' g/serving';
 }
 function renderQuickFoods(){
  const fav=S.favorites.map(n=>arr().findIndex(f=>f[0]===n)).filter(i=>i>=0);
@@ -513,8 +514,79 @@ function quickSelect(i){
 function updateFavButton(){ const n=arr()[+food.value]?.[0]; if(!n)return; const on=S.favorites.includes(n); favBtn.textContent=on?'★ Favorite':'☆ Favorite'; favHint.textContent=on?'Saved as favorite':''; }
 function toggleFavoriteSelected(){ const n=arr()[+food.value]?.[0]; if(!n)return; const i=S.favorites.indexOf(n); if(i>=0)S.favorites.splice(i,1);else S.favorites.push(n); save(); updateFavButton(); renderQuickFoods(); }
 function markRecent(n){ S.recent=[n,...S.recent.filter(x=>x!==n)].slice(0,12); }
+// Sensible household units for common foods. The database always keeps grams as the
+// precise fallback, but these mappings prevent users from being forced to enter
+// everything in grams when a normal kitchen/serving measure is more useful.
+const UNIT_EXTRA={
+ 'Whey protein (generic)':{serving:30},
+ 'Soy chunks (dry)':{cup:90,bowl:90,serving:25},
+ 'Soy chunks (cooked)':{bowl:150,cup:180,serving:100},
+ 'Black chana (cooked)':{bowl:150,cup:165,serving:100},
+ 'White chana (cooked)':{bowl:150,cup:165,serving:100},
+ 'Green moong (cooked)':{bowl:150,cup:175,serving:100},
+ 'Rajma (cooked)':{bowl:150,cup:175,serving:100},
+ 'Chana dal (cooked)':{bowl:150,cup:200,serving:100},
+ 'Toor dal (cooked)':{bowl:150,cup:200,serving:100},
+ 'Masoor dal (cooked)':{bowl:150,cup:200,serving:100},
+ 'Moong dal (cooked)':{bowl:150,cup:200,serving:100},
+ 'Urad dal (cooked)':{bowl:150,cup:200,serving:100},
+ 'Roasted chana':{tbsp:12,serving:30},
+ 'Peanuts':{tbsp:15,serving:30},
+ 'Boiled peanuts':{bowl:150,cup:160,serving:100},
+ 'Almonds':{piece:1.2,tbsp:9,serving:15},
+ 'Pumpkin seeds':{tsp:5,tbsp:15,serving:30},
+ 'Chia seeds':{tsp:5,tbsp:12,serving:15},
+ 'Oats':{tbsp:6,cup:80,serving:40},
+ 'Muesli':{tbsp:8,cup:60,serving:40},
+ 'Yoga Bar Muesli 1 (label)':{tbsp:8,cup:60,serving:40},
+ 'Yoga Bar Muesli 2 - High Protein (label)':{tbsp:8,cup:60,serving:40},
+ 'My Muesli Mix (50:50 by weight)':{tbsp:8,cup:60,serving:40},
+ 'Mixed seeds':{tsp:5,tbsp:15,serving:15},
+ 'Paneer':{bowl:150,serving:100},
+ 'Low-fat paneer':{bowl:150,serving:100},
+ 'Tofu':{bowl:150,serving:100},
+ 'Milky Mist Briyas Tofu - label':{bowl:150,serving:100},
+ 'Jersey Super Soft Paneer - label':{bowl:150,serving:100},
+ 'Multigrain bread (approx)':{piece:30,serving:30},
+ 'Chicken breast, boneless, skinless (raw)':{serving:100},
+ 'Chicken breast, boneless, skinless (cooked)':{serving:100},
+ 'Chicken thigh, boneless, skinless (raw)':{serving:100},
+ 'Chicken thigh, boneless, skinless (cooked)':{serving:100},
+ 'Chicken leg, boneless, skinless (raw)':{serving:100},
+ 'Chicken leg, bone-in (raw, approx edible portion)':{serving:100},
+ 'Chicken nuggets':{piece:20,serving:100},
+ 'Veg cheese nuggets':{piece:25,serving:100},
+ 'Broccoli':{bowl:150,cup:90,serving:100},
+ 'Spinach':{bowl:100,cup:30,serving:100},
+ 'Mushroom':{bowl:150,cup:70,serving:100},
+ 'Sweet corn':{bowl:150,cup:145,serving:100},
+ 'Cucumber':{bowl:150,cup:100,serving:100},
+ 'Carrot':{bowl:100,cup:128,serving:100},
+ 'Onion':{bowl:100,cup:160,serving:100},
+ 'Lettuce':{bowl:75,cup:36,serving:50},
+ 'Green gram sprouts (steamed)':{bowl:150,cup:100,serving:100},
+ 'Avocado':{piece:150,bowl:150,cup:150,serving:75},
+ 'Banana':{piece:100,serving:100},'Banana - small':{piece:80,serving:80},'Banana - medium':{piece:100,serving:100},'Banana - large':{piece:120,serving:120},
+ 'Apple':{piece:180,serving:180},'Apple - small':{piece:150,serving:150},'Apple - medium':{piece:180,serving:180},'Apple - large':{piece:220,serving:220},
+ 'Orange':{piece:130,serving:130},'Orange - small':{piece:100,serving:100},'Orange - medium':{piece:130,serving:130},'Orange - large':{piece:180,serving:180},
+ 'Guava':{piece:100,serving:100},'Guava - small':{piece:80,serving:80},'Guava - medium':{piece:120,serving:120},'Guava - large':{piece:180,serving:180},
+ 'Dates':{piece:7,serving:35},
+ 'Chapati':{piece:40,serving:40},'Idli':{piece:50,serving:50},'Steamed Idli':{piece:50,serving:50},'Dosa':{piece:80,serving:80},
+ 'Poha':{bowl:200,cup:150,serving:200},
+ 'Quinoa (cooked)':{bowl:185,cup:185,serving:100},
+ 'Brown rice (cooked)':{bowl:180,cup:195,serving:150},
+ 'White rice (cooked)':{bowl:180,cup:158,serving:150},
+ 'Sona/Kurnool rice (steamed/cooked)':{bowl:180,cup:158,serving:150},
+ 'Curd/yogurt':{bowl:200,cup:245,serving:100},'Greek/high-protein curd':{bowl:200,cup:245,serving:100},
+ 'Milky Mist Probiotic Greek Yogurt - label':{bowl:200,cup:245,serving:100},
+ 'Toned milk':{ml:1,serving:200},'Buttermilk':{ml:1,serving:200},'Buttermilk (200 ml)':{ml:1,serving:200},
+ 'Pomegranate arils':{bowl:150,cup:174,serving:100},'Papaya':{bowl:250,cup:145,serving:150},'Pineapple':{bowl:250,cup:165,serving:150},'Green grapes':{bowl:150,cup:150,serving:100},
+ 'Potato fry':{bowl:180,cup:160,serving:100},'Ladies finger (okra)':{bowl:150,cup:130,serving:100},'Palak with egg poriyal':{bowl:200,cup:180,serving:150},
+ 'Egg, whole':{piece:50,serving:50},'Egg white':{piece:30,serving:30},'Eggoz White Protein Rich Egg - label':{piece:50,serving:50}
+};
+function unitSpecForFood(name){ return Object.assign({}, UNIT_EXTRA[name]||{}, UNIT[name]||{}); }
 function allowedUnitsForFood(name){
- const spec=UNIT[name]||{};
+ const spec=unitSpecForFood(name);
  const keys=['g','ml','tsp','tbsp','piece','bowl','cup','serving'].filter(u=>u==='g'||spec[u]!=null);
  // Combination/recipe foods should not expose arbitrary household units.
  if(name==='Egg Dosa (1 egg + 1 plain dosa)') return ['g','serving'];
@@ -528,9 +600,15 @@ function foodConfidence(name){
 }
 function refreshUnitOptions(preserve=true){
  const f=arr()[+food.value||0]; if(!f||!unit)return;
- const allowed=allowedUnitsForFood(f[0]); const current=unit.value;
+ const allowed=allowedUnitsForFood(f[0]); const current=unit.value; const last=S.lastQty[f[0]];
  unit.innerHTML=allowed.map(u=>{const labels={g:'g',ml:'ml',tsp:'teaspoon',tbsp:'tablespoon',piece:'piece',bowl:'bowl',cup:'cup',serving:'serving'}; return `<option value="${u}">${labels[u]}</option>`}).join('');
- unit.value=(preserve&&allowed.includes(current))?current:allowed[0];
+ if(last && allowed.includes(last.u)) unit.value=last.u;
+ else if(preserve && allowed.includes(current)) unit.value=current;
+ else if(allowed.includes('serving') && /whey|protinex|biryani|parotta|nugget|bhurji|curry|toast|roll|samosa|vada/i.test(f[0])) unit.value='serving';
+ else if(allowed.includes('piece')) unit.value='piece';
+ else if(allowed.includes('bowl')) unit.value='bowl';
+ else if(allowed.includes('ml')) unit.value='ml';
+ else unit.value=allowed[0];
 }
 function opts(){
  let q=(search.value||'').toLowerCase(), s=food; s.innerHTML='';
@@ -539,7 +617,7 @@ function opts(){
  refreshUnitOptions(false);
  prev(); updateFavButton(); renderQuickFoods();
 }
-function prev(){let f=arr()[+food.value||0],q=+qty.value||0,u=unit.value||'g';if(!f)return;let g=gramsFor(f,q,u);unitHint.textContent=unitText(f,u);preview.textContent=(f[1]*g/100).toFixed(1)+' g protein • '+Math.round(f[2]*g/100)+' kcal • '+(f[5]*g/100).toFixed(1)+' g fibre'; if(f[0]==='Egg Dosa (1 egg + 1 plain dosa)'){ preview.textContent += ' • 1 serving = 1 egg + 1 plain dosa'; } if(f[0].startsWith('Biryani - ')){ preview.textContent += ' • 1 serving ≈ 250 g'; } const fc=foodConfidence(f[0]); unitHint.innerHTML=unitText(f,u)+'<div class="foodConfidence '+fc.cls+'">'+fc.text+'</div>'; renderMicroPreview()}
+function prev(){let f=arr()[+food.value||0],q=+qty.value||0,u=unit.value||'g';if(!f)return;let g=gramsFor(f,q,u);unitHint.textContent=unitText(f,u);preview.textContent=(f[1]*g/100).toFixed(1)+' g protein • '+Math.round(f[2]*g/100)+' kcal • '+(f[5]*g/100).toFixed(1)+' g fibre'; if(f[0]==='Egg Dosa (1 egg + 1 plain dosa)'){ preview.textContent += ' • 1 serving = 1 egg + 1 plain dosa'; } if(f[0].startsWith('Biryani - ')){ preview.textContent += ' • 1 serving ≈ 250 g'; } else if(u==='serving'){ const sp=unitSpecForFood(f[0]); preview.textContent += ' • 1 serving ≈ '+(sp.serving||100)+' g'; } const fc=foodConfidence(f[0]); unitHint.innerHTML=unitText(f,u)+'<div class="foodConfidence '+fc.cls+'">'+fc.text+'</div>'; renderMicroPreview()}
 function addOrUpdate(){
  let f=arr()[+food.value],q=+qty.value||0,u=unit.value||'g',d=selectedDate||todayKey();
  if(!q||!f){alert('Choose a food and amount.');return}
