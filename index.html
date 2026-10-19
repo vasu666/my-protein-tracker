@@ -166,7 +166,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
   <div class="small" style="margin-bottom:6px">Average daily protein on logged days vs 100 g target</div>
   <div id="proteinChart"></div>
 </div>
-<div class="small" style="margin-bottom:6px">Latest week/month first</div><div id="trendBars"></div>
+<div class="small" style="margin-bottom:6px">Latest week/month first. Tap “Food breakdown” to inspect contributions for that period.</div><div id="trendBars"></div><div id="foodPeriodAnalysis" class="card" style="margin-top:12px;background:#fbfcfe"><h3>🍽️ Food contribution analysis</h3><div class="small">Choose a week or month above to see which foods contribute most to your intake.</div></div>
 <div class="card" style="margin-top:12px;background:#fbfcfe"><h3>🎯 Average target progress</h3><div id="macroTrendBars"></div></div>
 </div>
 <div class="card">
@@ -1224,13 +1224,13 @@ function renderTrends(){
  if(mode==="weekly"){
   for(let i=7;i>=0;i--){let d=new Date();d.setDate(d.getDate()-i*7);let ws=weekStart(d);let p=0,c=0,f=0,carb=0,fiber=0,days=0,hit=0;
    for(let j=0;j<7;j++){let x=new Date(ws);x.setDate(x.getDate()+j);let a=getDay(dayKeyFromDate(x)),t=totals(a);p+=t.p;c+=t.c;f+=t.f;carb+=t.carb;fiber+=t.fiber;if(t.p>0)days++;if(t.p>=S.p)hit++}
-   periods.push({label:ws.toLocaleDateString("en-IN",{day:"numeric",month:"short"}),p,c,f,carb,fiber,days,hit})
+   let we=new Date(ws);we.setDate(we.getDate()+6);periods.push({label:ws.toLocaleDateString("en-IN",{day:"numeric",month:"short"}),startKey:dayKeyFromDate(ws),endKey:dayKeyFromDate(we),p,c,f,carb,fiber,days,hit})
   }
  }else{
   for(let i=11;i>=0;i--){let d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);let y=d.getFullYear(),m=d.getMonth(),p=0,c=0,f=0,carb=0,fiber=0,days=0,hit=0;
    let last=new Date(y,m+1,0).getDate();
    for(let j=1;j<=last;j++){let x=new Date(y,m,j),a=getDay(dayKeyFromDate(x)),t=totals(a);p+=t.p;c+=t.c;f+=t.f;carb+=t.carb;fiber+=t.fiber;if(t.p>0)days++;if(t.p>=S.p)hit++}
-   periods.push({label:d.toLocaleDateString("en-IN",{month:"short",year:"numeric"}),p,c,f,carb,fiber,days,hit})
+   periods.push({label:d.toLocaleDateString("en-IN",{month:"short",year:"numeric"}),startKey:dayKeyFromDate(new Date(y,m,1)),endKey:dayKeyFromDate(new Date(y,m,last)),p,c,f,carb,fiber,days,hit})
   }
  }
  let totalP=periods.reduce((s,x)=>s+x.p,0), totalC=periods.reduce((s,x)=>s+x.c,0), totalF=periods.reduce((s,x)=>s+x.f,0), totalCarb=periods.reduce((s,x)=>s+x.carb,0), totalFiber=periods.reduce((s,x)=>s+x.fiber,0), logged=periods.reduce((s,x)=>s+x.days,0), targetDays=periods.reduce((s,x)=>s+x.hit,0);
@@ -1250,7 +1250,7 @@ function renderTrends(){
  renderProteinChart(periods);
  trendBars.innerHTML=[...periods].reverse().map(x=>{
    let avgP=x.days?x.p/x.days:0; let pct=Math.min(100,avgP/S.p*100);
-   return `<div class=row><div><b>${x.label}</b><div class=small>${x.days} logged days • ${x.hit} protein-target days</div></div><div style="min-width:48%;text-align:right"><b>${avgP.toFixed(0)} g P/day</b><div class=bar><div class=fill style="width:${pct}%"></div></div><div class=small>${x.days?Math.round(x.c/x.days):0} kcal • ${x.days?(x.f/x.days).toFixed(1):0} g fat • ${x.days?(x.fiber/x.days).toFixed(1):0} g fibre</div></div></div>`
+   return `<div class="row" style="align-items:flex-start"><div style="flex:1"><b>${x.label}</b><div class=small>${x.days} logged days • ${x.hit} protein-target days</div><button class="secondary" style="margin-top:6px;padding:7px 10px" onclick="showFoodPeriod('${x.startKey}','${x.endKey}','${x.label}')">🍽️ Food breakdown</button></div><div style="min-width:42%;text-align:right"><b>${avgP.toFixed(0)} g P/day</b><div class=bar><div class=fill style="width:${pct}%"></div></div><div class=small>${x.days?Math.round(x.c/x.days):0} kcal • ${x.days?(x.f/x.days).toFixed(1):0} g fat • ${x.days?(x.fiber/x.days).toFixed(1):0} g fibre</div></div></div>`
  }).join("");
  const ap=avg(totalP), ac=avg(totalC), af=avg(totalF), afi=avg(totalFiber);
  const macroData=[['Protein',ap,S.p,'g'],['Calories',ac,S.c,'kcal'],['Fat',af,S.f,'g'],['Fibre',afi,S.fi,'g']];
@@ -1263,6 +1263,34 @@ function renderTrends(){
 }
 
 
+let foodAnalysisMetric='protein';
+function showFoodPeriod(startKey,endKey,label){
+ const el=document.getElementById('foodPeriodAnalysis'); if(!el)return;
+ const daily=[], by={}; let totalsAll={p:0,c:0,f:0,carb:0,fiber:0}, loggedDays=0, microAll={};
+ const d0=new Date(startKey+'T12:00:00'),d1=new Date(endKey+'T12:00:00');
+ for(let d=new Date(d0);d<=d1;d.setDate(d.getDate()+1)){
+  const key=dayKeyFromDate(d), entries=getDay(key), t=totals(entries);
+  if(entries.length){loggedDays++; Object.keys(totalsAll).forEach(k=>totalsAll[k]+=t[k]||0);}
+  entries.forEach(x=>{
+   const name=x.name||'Food'; if(!by[name])by[name]={name,p:0,c:0,f:0,carb:0,fiber:0,grams:0,days:{},micro:{}};
+   const b=by[name]; ['p','c','f','carb','fiber'].forEach(k=>b[k]+=Number(x[k])||0); b.grams+=Number(x.g)||0;b.days[key]=true;
+   const m=MICRO[name]; if(m){Object.keys(MICRO_TARGETS).forEach(k=>{const v=microValueForEntry(x,k)||0;b.micro[k]=(b.micro[k]||0)+v;microAll[k]=(microAll[k]||0)+v;});}
+  });
+ }
+ const rows=Object.values(by), metric=foodAnalysisMetric, metricLabel={p:'protein',c:'calories',carb:'carbohydrates',f:'fat',fiber:'fibre'}[metric]||'protein';
+ const fmt=(v,k)=>k==='c'?Math.round(v).toLocaleString('en-IN')+' kcal':Number(v).toFixed(k==='p'||k==='carb'||k==='f'||k==='fiber'?1:0)+(k==='p'?' g protein':k==='carb'?' g carbs':k==='f'?' g fat':k==='fiber'?' g fibre':' kcal');
+ const metricTotal=totalsAll[metric]||0;
+ const ranked=rows.filter(x=>x[metric]>0).sort((a,b)=>b[metric]-a[metric]);
+ const table=ranked.slice(0,12).map(x=>{const share=metricTotal?x[metric]/metricTotal*100:0;const perDay=x[metric]/Math.max(loggedDays,1);return `<div class="row" style="display:block"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><b style="flex:1">${escapeHtml(x.name)}</b><b>${fmt(perDay,metric==='p'?'p':metric==='c'?'c':metric==='carb'?'carb':metric==='f'?'f':'fiber')}/day</b></div><div class="bar" style="margin-top:6px"><div class="fill" style="width:${Math.min(100,share)}%"></div></div><div class="small">${share.toFixed(1)}% of total ${metricLabel} • ${fmt(x[metric],metric)} total in period • ${Object.keys(x.days).length} logged day(s)</div></div>`}).join('');
+ const red=rows.filter(x=>x.c>0&&x.p>0).map(x=>({...x,proteinPer100kcal:x.p/x.c*100,calPer100g:x.grams?x.c/x.grams*100:0})).filter(x=>x.c/Math.max(loggedDays,1)>=40 && x.proteinPer100kcal<5).sort((a,b)=>b.c-a.c).slice(0,5);
+ const good=rows.filter(x=>x.c>0&&x.p>0).map(x=>({...x,eff:x.p/x.c*100,carbsPer100kcal:x.carb/x.c*100})).filter(x=>x.c>=40).sort((a,b)=>b.eff-a.eff).slice(0,5);
+ const redHtml=red.length?red.map(x=>`<div class="row"><div><b>🔴 ${escapeHtml(x.name)}</b><div class="small">${(x.p/Math.max(loggedDays,1)).toFixed(1)} g protein/day • ${Math.round(x.c/Math.max(loggedDays,1))} kcal/day • ${x.proteinPer100kcal.toFixed(1)} g protein/100 kcal</div></div></div>`).join(''):'<div class="small">No strong red-flag pattern detected in this period. Foods are flagged using logged calories and protein efficiency, not as inherently bad foods.</div>';
+ const goodHtml=good.length?good.map(x=>`<div class="row"><div><b>🟢 ${escapeHtml(x.name)}</b><div class="small">${x.eff.toFixed(1)} g protein/100 kcal • ${(x.carb/Math.max(x.c,1)*100).toFixed(1)} g carbs per 100 kcal • ${Math.round(x.c/Math.max(loggedDays,1))} kcal/day</div></div></div>`).join(''):'<div class="small">Log more foods to identify your most protein-efficient choices.</div>';
+ const lowMicros=Object.keys(MICRO_TARGETS).filter(k=>MICRO_TARGETS[k].goal).map(k=>({k,avg:(microAll[k]||0)/Math.max(loggedDays,1),pct:(microAll[k]||0)/Math.max(loggedDays,1)/MICRO_TARGETS[k].target*100})).sort((a,b)=>a.pct-b.pct).slice(0,4);
+ const microHtml=lowMicros.map(x=>{const meta=MICRO_TARGETS[x.k],foods=rows.filter(r=>(r.micro[x.k]||0)>0).sort((a,b)=>(b.micro[x.k]||0)-(a.micro[x.k]||0)).slice(0,3),suggest=(MICRO_FOOD_SUGGESTIONS[x.k]||[]).slice(0,3);return `<div class="row" style="display:block"><b>${meta.label}: ${Math.round(x.pct)}% of daily reference</b><div class="small">Average ${microFmt(x.avg,meta.unit)} ${meta.unit}/logged day • strongest logged contributors: ${foods.length?foods.map(f=>`${escapeHtml(f.name)} (${microFmt((f.micro[x.k]||0)/Math.max(loggedDays,1),meta.unit)} ${meta.unit}/day)`).join(', '):'no mapped contributors'}</div><div class="small" style="margin-top:4px"><b>Foods to consider:</b> ${suggest.map(v=>escapeHtml(v[0])).join(', ')}. Check labels for fortified foods; suggestions are options, not a diagnosis.</div></div>`}).join('');
+ el.innerHTML=`<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap"><div><h3 style="margin:0">🍽️ ${escapeHtml(label)} food breakdown</h3><div class="small">${startKey} to ${endKey} • ${loggedDays} logged days. Averages divide by logged days, not unlogged days.</div></div><button class="secondary" onclick="document.getElementById('foodPeriodAnalysis').scrollIntoView({behavior:'smooth',block:'start'})">↑ Details</button></div><div class="grid" style="margin-top:10px"><div class="stat"><b>${(totalsAll.p/Math.max(loggedDays,1)).toFixed(1)} g</b><span class="small">Avg protein/day</span></div><div class="stat"><b>${Math.round(totalsAll.c/Math.max(loggedDays,1))}</b><span class="small">Avg kcal/day</span></div><div class="stat"><b>${(totalsAll.carb/Math.max(loggedDays,1)).toFixed(1)} g</b><span class="small">Avg carbs/day</span></div></div><label style="margin-top:10px">Rank foods by</label><select id="foodAnalysisMetric" onchange="foodAnalysisMetric=this.value;showFoodPeriod('${startKey}','${endKey}','${label}')"><option value="p" ${metric==='p'?'selected':''}>Protein contribution</option><option value="c" ${metric==='c'?'selected':''}>Calories contribution</option><option value="carb" ${metric==='carb'?'selected':''}>Carbohydrates contribution</option><option value="f" ${metric==='f'?'selected':''}>Fat contribution</option><option value="fiber" ${metric==='fiber'?'selected':''}>Fibre contribution</option></select><div style="margin-top:8px">${table||'<div class="small">No foods logged in this period.</div>'}</div><h3 style="margin-top:16px">🚦 Red flags: calories with relatively little protein</h3><div class="small">Screening rule: at least 40 kcal/day average from the food and under 5 g protein per 100 kcal. Use this as a review prompt, not a judgement.</div>${redHtml}<h3 style="margin-top:16px">💪 Protein-efficient foods</h3><div class="small">Ranked by protein per 100 kcal among foods logged in the period. Consider portion, carbs and overall meal balance too.</div>${goodHtml}<h3 style="margin-top:16px">🧬 Micronutrient gaps and contributors</h3><div class="small">Lowest four reference nutrients based on foods with micronutrient data. Missing food micronutrients are not counted as zero.</div>${microHtml||'<div class="small">No micronutrient estimates available for this period.</div>'}`;
+ el.scrollIntoView({behavior:'smooth',block:'start'});
+}
 function escapeHtml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function hashId(name){
  let h=2166136261;
