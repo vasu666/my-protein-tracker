@@ -39,6 +39,9 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 
 .habitGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.habitTile{border:1px solid var(--line);border-radius:13px;background:#fbfcfe;padding:11px}.habitTile.done{border-color:#8ac99b;background:#f0fbf3}.habitTile label{display:flex;align-items:center;gap:8px;margin:0;color:#172033;font-size:14px}.habitTile input[type=checkbox]{width:20px;height:20px;accent-color:#159447}.habitTop{display:flex;align-items:center;justify-content:space-between;gap:8px}.habitStatGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.habitStat{background:#f8fafc;border-radius:11px;padding:10px}.habitStat b{display:block;font-size:19px}.habitWeekGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px}.habitWeekDay{background:#f2f4f7;border-radius:9px;padding:7px 2px;text-align:center;font-size:11px}.habitWeekDay.hit{background:#e8f7ed;color:#15753b}.habitWeekDay.today{outline:2px solid var(--b2)}.habitBadgeGrid{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.habitBadge{background:#eef3f8;color:#667085;border-radius:10px;padding:7px 9px;font-size:11px;font-weight:bold}.habitBadge.done{background:#e8f7ed;color:#15753b}.habitFormGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.habitProgress{height:8px;background:#e7ecf3;border-radius:10px;overflow:hidden;margin-top:6px}.habitProgress>div{height:100%;background:#159447;border-radius:10px}@media(max-width:600px){.habitGrid{grid-template-columns:1fr 1fr}.habitStatGrid{grid-template-columns:1fr 1fr}.habitFormGrid{grid-template-columns:1fr}}
 
+
+.quickDashGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.quickDashTile{border:1px solid var(--line);border-radius:12px;background:#f8fafc;padding:10px}.quickDashTile b{display:block}.quickDashActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.quickDashActions button{padding:8px 10px}.quickDashFood{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line)}.quickDashFood:first-child{border-top:0}.quickDashFood .small{overflow-wrap:anywhere}.quickDashMealGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}.quickDashMealGrid button{text-align:left;background:#fff;border:1px solid var(--line);padding:10px;border-radius:10px}.quickDashWater{display:flex;gap:8px;align-items:end;margin-top:8px}.quickDashWater>div{flex:1}.quickDashWater input{margin:0}@media(max-width:600px){.quickDashGrid{grid-template-columns:1fr 1fr}.quickDashMealGrid{grid-template-columns:1fr}.quickDashFood button{flex-shrink:0}}
+
 </style>
 </head>
 <body>
@@ -46,10 +49,10 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="wrap">
 <div class="tabs">
 <button class="on" onclick="tab('today',this)">Today</button>
+<button onclick="tab('habits',this)">✅ Daily Habits</button>
 <button onclick="tab('micros',this)">🧬 Micronutrients</button>
 <button onclick="tab('add',this)">Add Food</button>
 <button onclick="tab('history',this)">📅 History</button><button onclick="tab('trends',this)">📈 Trends</button>
-<button onclick="tab('habits',this)">✅ Daily Habits</button>
 <button onclick="tab('custom',this)">My Foods</button>
 <button onclick="tab('meals',this)">My Meals</button>
 <button onclick="tab('settings',this)">Settings</button>
@@ -76,7 +79,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="metric miniMetric"><div class="small">Items</div><b id="items">0</b><div class="small metricTarget">Food entries</div></div>
 </div>
 </div>
-<div class="card" id="proteinStreak"></div><div class="card" id="achievementCenter"></div><div class="card" id="dailyInsight"></div><div class="card" id="todayFocus"></div><div class="card" id="proteinHelper"></div><div class="card" id="redFlagFoods"></div><div class="card" id="todayList"></div>
+<div class="card" id="dailyQuickDashboard"><h3>⚡ Daily dashboard</h3><div class="small">Quickly update your habits or open a favorite food. Your existing history and targets stay unchanged.</div><div id="quickDashboardSummary" class="quickDashGrid"></div><div class="quickDashActions"><button class="secondary" onclick="openHabitsForSelectedDate()">✅ Update Daily Habits</button><button class="secondary" onclick="openAddForSelectedDate()">＋ Add food</button></div><hr><b>⭐ Favorites & recent foods</b><div id="todayQuickFoods" style="margin-top:6px"></div><div class="small" style="margin-top:7px">Tap a food to open Add Food with your last-used amount and unit when available.</div><hr><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><b>🍽️ Saved meals</b><select id="quickMealCategory" style="max-width:190px;margin:0"><option>Breakfast / Mid-Morning</option><option>Lunch</option><option>Evening Snack</option><option>Dinner</option></select></div><div id="todayQuickMeals" class="quickDashMealGrid"></div></div><div class="card" id="proteinStreak"></div><div class="card" id="achievementCenter"></div><div class="card" id="dailyInsight"></div><div class="card" id="todayFocus"></div><div class="card" id="proteinHelper"></div><div class="card" id="redFlagFoods"></div><div class="card" id="todayList"></div>
 </section>
 
 
@@ -666,7 +669,7 @@ function modifyToday(i,d=todayKey()){
  selectedDate=d; editing={i,d};
  // Switch to Add Food first. tab('add') refreshes the food list, so set the
  // selected food/quantity only after that refresh; otherwise it resets to the first food.
- let addBtn=document.querySelector('.tabs button:nth-child(2)');
+ let addBtn=Array.from(document.querySelectorAll('.tabs button')).find(x=>x.getAttribute('onclick').includes("tab('add'"));
  tab('add',addBtn);
  addDate.value=d;
  meal.value=(x.meal==='Breakfast'||x.meal==='Mid-Morning')?'Breakfast / Mid-Morning':(x.meal||'Breakfast / Mid-Morning');
@@ -860,7 +863,7 @@ function proteinSuggestions(t){
 }
 function addSuggestion(name,q,u){
  selectedDate=todayKey(); editing=null; resetAddAction();
- const addBtn=document.querySelector('.tabs button:nth-child(2)'); tab('add',addBtn);
+ const addBtn=Array.from(document.querySelectorAll('.tabs button')).find(x=>x.getAttribute('onclick').includes("tab('add'")); tab('add',addBtn);
  addDate.value=todayKey(); meal.value='Breakfast / Mid-Morning'; search.value=''; opts();
  const i=arr().findIndex(f=>f[0]===name); if(i>=0){food.value=i;qty.value=q;unit.value=u;prev();}
  window.scrollTo({top:0,behavior:'smooth'});
@@ -1058,6 +1061,26 @@ function renderMicronutrients(){
 function renderMicroPreview(){
  const el=document.getElementById('microPreview');if(!el)return;const f=arr()[+food.value||0],q=+qty.value||0,u=unit.value||'g';if(!f||!q){el.innerHTML='';return;}const g=gramsFor(f,q,u),m=MICRO[f[0]];if(!m){el.innerHTML='<span class="small">🧬 Micronutrients: this food is not yet mapped. Protein/calorie values will still be tracked.</span>';return;}const keys=['calcium','iron','zinc','magnesium','vitaminC','vitaminB12'];const text=keys.map(k=>{const meta=MICRO_TARGETS[k],v=(Number(m[k])||0)*g/100;return `${meta.label} ${microFmt(v,meta.unit)}${meta.unit}`}).join(' • ');el.innerHTML='<b>🧬 Micronutrients for this amount</b><div class="small" style="margin-top:4px">'+text+'</div>';}
 
+function openHabitsForSelectedDate(){habitViewDate=todayViewDate||todayKey();const b=Array.from(document.querySelectorAll('.tabs button')).find(x=>x.getAttribute('onclick').includes("tab('habits'"));if(b)tab('habits',b);}
+function openAddForSelectedDate(){selectedDate=todayViewDate||todayKey();addDate.value=selectedDate;const b=Array.from(document.querySelectorAll('.tabs button')).find(x=>x.getAttribute('onclick').includes("tab('add'"));if(b)tab('add',b);}
+function quickOpenFood(i){const d=todayViewDate||todayKey();selectedDate=d;addDate.value=d;const b=Array.from(document.querySelectorAll('.tabs button')).find(x=>x.getAttribute('onclick').includes("tab('add'"));if(b)tab('add',b);quickSelect(i);addDate.value=d;selectedDate=d;}
+function quickAddSavedMeal(n){const d=todayViewDate||todayKey();selectedDate=d;const cat=document.getElementById('quickMealCategory')?.value||'Breakfast / Mid-Morning';let dateEl=document.getElementById('mealAddDate'),catEl=document.getElementById('mealAddCat');if(dateEl)dateEl.value=d;if(catEl)catEl.value=cat;addMeal(n);renderToday();}
+function renderDailyQuickDashboard(d){
+ const summary=document.getElementById('quickDashboardSummary');if(!summary)return;
+ if(typeof ensureHabitData==='function')ensureHabitData();
+ const hx=(S.habits?.days||{})[d]||{},cfg=S.habits?.config||{waterTarget:2.5,gymTarget:5,homeTarget:3,treadmillTarget:4};
+ const water=Number(hx.water)||0,target=Number(cfg.waterTarget)||2.5;
+ const dayItems=[['Morning skin routine',!!hx.morningSkin],['Night skin routine',!!hx.nightSkin],['Water target',water>=target]];
+ const done=dayItems.filter(x=>x[1]).length;
+ const wkStart=typeof habitWeekStart==='function'?habitWeekStart(d):d;
+ const wk=typeof habitWeekStats==='function'?habitWeekStats(wkStart):{counts:{gym:0,home:0,treadmill:0}};
+ const workoutText=`Gym ${wk.counts.gym}/${cfg.gymTarget} · Home ${wk.counts.home}/${cfg.homeTarget} · Treadmill ${wk.counts.treadmill}/${cfg.treadmillTarget}`;
+ summary.innerHTML=`<div class="quickDashTile"><div class="small">Daily habits</div><b>${done}/3 complete</b><div class="habitProgress"><div style="width:${done/3*100}%"></div></div><div class="small">Skin routines + water target</div></div><div class="quickDashTile"><div class="small">💧 Water</div><b>${water.toFixed(1)} / ${target.toFixed(1)} L</b><div class="habitProgress"><div style="width:${Math.min(100,water/target*100)}%"></div></div><div class="quickDashWater"><div><label for="quickWaterInput" class="small">Litres consumed</label><input id="quickWaterInput" type="number" min="0" max="20" step="0.1" value="${water.toFixed(1)}"></div><button class="secondary" onclick="saveQuickWater()">Save</button></div></div><div class="quickDashTile" style="grid-column:1/-1"><div class="small">🏋️ Weekly workouts</div><b>${workoutText}</b><div class="small">Workout goals are counted separately from daily habits.</div></div>`;
+ const fav=S.favorites.map(n=>arr().findIndex(f=>f[0]===n)).filter(i=>i>=0),recent=S.recent.map(n=>arr().findIndex(f=>f[0]===n)).filter(i=>i>=0&&!fav.includes(i));
+ const ids=[...fav,...recent].slice(0,6);const foodBox=document.getElementById('todayQuickFoods');foodBox.innerHTML=ids.length?ids.map(i=>{const f=arr()[i],last=S.lastQty[f[0]],hint=S.favorites.includes(f[0])?'Favorite':'Recent';return `<div class="quickDashFood"><div style="min-width:0"><b>${S.favorites.includes(f[0])?'⭐ ':''}${f[0]}</b><div class="small">${hint}${last?.q?` · last ${last.q} ${last.u}`:''}</div></div><button class="secondary" onclick="quickOpenFood(${i})">Open</button></div>`}).join(''):'<div class="small">No favorites or recent foods yet. Add a food and mark frequent choices as favorites.</div>';
+ const meals=Object.keys(S.meals||{}).slice(0,6),mealBox=document.getElementById('todayQuickMeals');mealBox.innerHTML=meals.length?meals.map(n=>`<button type="button" onclick="quickAddSavedMeal(${JSON.stringify(n)})"><b>${n}</b><div class="small">＋ Add to ${d===todayKey()?'today':'selected date'}</div></button>`).join(''):'<div class="small">No saved meals yet. Create one in My Meals to add it quickly here.</div>';
+}
+function saveQuickWater(){if(typeof ensureHabitData==='function')ensureHabitData();const d=todayViewDate||todayKey();if(!S.habits.days[d])S.habits.days[d]={};const val=Number(document.getElementById('quickWaterInput')?.value)||0;S.habits.days[d].water=Math.max(0,Math.min(20,val));save();renderToday();if(!document.getElementById('habits').classList.contains('hidden'))renderHabits();}
 function renderToday(){
  let d=todayViewDate||todayKey(),a=getDay(d),t=totals(a);
  todayDateTitle.textContent=formatTodayViewDate(d);
@@ -1067,7 +1090,7 @@ function renderToday(){
  setProgressBar(pb,t.p,S.p,'goal');setProgressBar(cb,t.c,S.c,'limit');
  fat.textContent=t.f.toFixed(1)+" g";carb.textContent=t.carb.toFixed(1)+" g";fib.textContent=t.fiber.toFixed(1)+" g";items.textContent=a.length;
  setProgressBar(fatBar,t.f,Math.max(S.f,1),'limit');setProgressBar(fibBar,t.fiber,Math.max(S.fi,1),'goal');setProgressBar(carbBar,t.carb,Math.max(S.ch,1),'limit');
- renderProteinStreak(); renderAchievements(); renderTodayFocus(t); renderProteinHelper(t); renderRedFlagFoods(a,t,d);
+ renderDailyQuickDashboard(d); renderProteinStreak(); renderAchievements(); renderTodayFocus(t); renderProteinHelper(t); renderRedFlagFoods(a,t,d);
  fatTargetText.textContent="of "+S.f+" g target";carbTargetText.textContent="of "+S.ch+" g target";fibTargetText.textContent="of "+S.fi+" g target"; renderInsight(t);
  const cats=['Breakfast / Mid-Morning','Lunch','Evening Snack','Dinner'];
  const itemHtml=(i)=>{const x=a[i]||{},p=Number(x.p)||0,q=x.q??'',u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i},"${d}")'>Modify</button> <button class=danger onclick='delToday(${i},"${d}")'>×</button></div></div>`};
@@ -1088,7 +1111,7 @@ function delToday(i,d=todayViewDate||todayKey()){getDay(d).splice(i,1);save();re
 function goAddCategory(cat,d){
  d=d||((document.getElementById('today')?.classList.contains('hidden')) ? (histDate.value||todayKey()) : (todayViewDate||todayKey())); selectedDate=d;
  if(cat){meal.value=cat;}
- tab('add',document.querySelector('.tabs button[onclick*="tab(\'add\'"]'));
+ tab('add',Array.from(document.querySelectorAll('.tabs button')).find(x=>x.getAttribute('onclick').includes("tab('add'")));
  if(cat) meal.value=cat;
  addDate.value=d; opts();
 }
@@ -1411,7 +1434,7 @@ function addMeal(n){
  let m=S.meals[n]; if(!m)return;
  let names=(m.foodIds||[]).map(foodNameFromId).filter(Boolean); if(!names.length)names=mealFoodNames(m);
  let targetDate=(document.getElementById('mealAddDate')?.value)||selectedDate||todayKey();
- let category=(document.getElementById('mealAddCat')?.value)||'Breakfast';
+ let category=(document.getElementById('mealAddCat')?.value)||document.getElementById('quickMealCategory')?.value||'Breakfast / Mid-Morning';
  let day=getDay(targetDate),added=0,groupId='meal_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
  names.forEach((name,k)=>{
    let f=arr().find(x=>x[0]===name); if(!f)return;
@@ -1550,7 +1573,7 @@ function saveHabitConfig(){ensureHabitData();const get=(id,min,max)=>Math.max(mi
 // PWA update helper: register the versioned service worker and let a new worker take over immediately.
 (function setupPwaUpdates(){
   if(!('serviceWorker' in navigator)) return;
-  const SW_VERSION='v64';
+  const SW_VERSION='v66';
   let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
     if(reloaded) return;
