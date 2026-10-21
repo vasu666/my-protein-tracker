@@ -50,6 +50,9 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 .quickDashAccordion[open] summary:after{content:"−"}
 .quickDashAccordion[open] summary{border-bottom:1px solid var(--line,#dfe5ed)}
 .quickDashAccordion summary .small{font-weight:400;text-align:right}
+
+.coachGrid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}.coachItem{background:#f7f9fc;border:1px solid #e2e8f0;border-radius:12px;padding:12px}.coachItem b{color:#183b63}
+@media(min-width:650px){.coachGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -87,7 +90,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="metric miniMetric"><div class="small">Items</div><b id="items">0</b><div class="small metricTarget">Food entries</div></div>
 </div>
 </div>
-<div class="card" id="dailyQuickDashboard"><h3>⚡ Daily dashboard</h3><div class="small">Quickly update your habits or open a favorite food. Your existing history and targets stay unchanged.</div><div id="quickDashboardSummary" class="quickDashGrid"></div><div class="quickDashActions"><button class="secondary" onclick="openHabitsForSelectedDate()">✅ Update Daily Habits</button><button class="secondary" onclick="openAddForSelectedDate()">＋ Add food</button></div><details class="quickDashAccordion" id="quickFoodsAccordion"><summary>⭐ Favorites & recent foods <span class="small">Tap to expand</span></summary><div id="todayQuickFoods" style="margin-top:6px"></div><div class="small" style="margin-top:7px">Tap a food to open Add Food with your last-used amount and unit when available.</div></details><details class="quickDashAccordion" id="quickMealsAccordion"><summary>🍽️ Saved meals <span class="small">Tap to expand</span></summary><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0"><label for="quickMealCategory" class="small">Add meal to</label><select id="quickMealCategory" style="max-width:190px;margin:0"><option>Breakfast / Mid-Morning</option><option>Lunch</option><option>Evening Snack</option><option>Dinner</option></select></div><div id="todayQuickMeals" class="quickDashMealGrid"></div></details></div><div class="card" id="proteinStreak"></div><div class="card" id="achievementCenter"></div><div class="card" id="dailyInsight"></div><div class="card" id="todayFocus"></div><div class="card" id="proteinHelper"></div><div class="card" id="todayList"></div><div class="card" id="redFlagFoods"></div>
+<div class="card" id="dailyQuickDashboard"><h3>⚡ Daily dashboard</h3><div class="small">Quickly update your habits or open a favorite food. Your existing history and targets stay unchanged.</div><div id="quickDashboardSummary" class="quickDashGrid"></div><div class="quickDashActions"><button class="secondary" onclick="openHabitsForSelectedDate()">✅ Update Daily Habits</button><button class="secondary" onclick="openAddForSelectedDate()">＋ Add food</button></div><details class="quickDashAccordion" id="quickFoodsAccordion"><summary>⭐ Favorites & recent foods <span class="small">Tap to expand</span></summary><div id="todayQuickFoods" style="margin-top:6px"></div><div class="small" style="margin-top:7px">Tap a food to open Add Food with your last-used amount and unit when available.</div></details><details class="quickDashAccordion" id="quickMealsAccordion"><summary>🍽️ Saved meals <span class="small">Tap to expand</span></summary><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0"><label for="quickMealCategory" class="small">Add meal to</label><select id="quickMealCategory" style="max-width:190px;margin:0"><option>Breakfast / Mid-Morning</option><option>Lunch</option><option>Evening Snack</option><option>Dinner</option></select></div><div id="todayQuickMeals" class="quickDashMealGrid"></div></details></div><div class="card" id="proteinStreak"></div><div class="card" id="achievementCenter"></div><div class="card" id="dailyInsight"></div><div class="card" id="todayFocus"></div><div class="card" id="dailyCoach"></div><div class="card" id="proteinHelper"></div><div class="card" id="todayList"></div><div class="card" id="redFlagFoods"></div>
 </section>
 
 
@@ -876,6 +879,23 @@ function addSuggestion(name,q,u){
  const i=arr().findIndex(f=>f[0]===name); if(i>=0){food.value=i;qty.value=q;unit.value=u;prev();}
  window.scrollTo({top:0,behavior:'smooth'});
 }
+function renderDailyCoach(a,t,d){
+ const el=document.getElementById('dailyCoach'); if(!el)return;
+ const proteinLeft=Math.max(0,S.p-t.p), caloriesLeft=S.c-t.c, fibreLeft=Math.max(0,S.fi-t.fiber);
+ const actions=[];
+ if(proteinLeft>0){
+   const options=proteinSuggestions(t).slice(0,3);
+   actions.push({icon:'💪',title:`${proteinLeft.toFixed(0)} g protein remaining`,text:caloriesLeft>0?`Choose a protein-rich option that fits within roughly ${Math.max(0,caloriesLeft).toFixed(0)} kcal remaining.`:'Your calorie target is already reached or exceeded, so consider a modest lean-protein portion and review your overall intake.',foods:options.map(x=>`${escapeHtml(x.name)} (${x.q} ${x.u==='g'?'g':x.u})`).join(' · ')});
+ } else actions.push({icon:'🎯',title:'Protein target reached',text:'Keep the rest of your meals balanced and pay attention to your remaining energy and macro targets.',foods:''});
+ if(fibreLeft>3) actions.push({icon:'🌿',title:`About ${fibreLeft.toFixed(0)} g fibre to go`,text:'Consider adding a vegetable, pulse, fruit or whole-grain food to a meal.',foods:'Examples: guava, papaya, beans/dal, vegetables, oats or whole-wheat atta.'});
+ if(caloriesLeft<0) {
+   const by={}; (a||[]).forEach(x=>{const n=x.name||'Food';if(!by[n])by[n]={c:0,p:0};by[n].c+=Number(x.c)||0;by[n].p+=Number(x.p)||0;});
+   const top=Object.entries(by).sort((x,y)=>y[1].c-x[1].c).slice(0,2);
+   actions.push({icon:'⚖️',title:`${Math.abs(caloriesLeft).toFixed(0)} kcal above target`,text:'Review portion sizes and the full day before deciding what to change; one food is not the only cause.',foods:top.length?`Largest logged calorie contributors: ${top.map(([n,v])=>`${escapeHtml(n)} (${Math.round(v.c)} kcal)`).join(' · ')}`:''});
+ } else if(t.c/S.c>=0.8) actions.push({icon:'👀',title:'Calories getting close to target',text:`About ${caloriesLeft.toFixed(0)} kcal remain. If you still need protein, prioritize a protein-dense option and check the portion.`,foods:''});
+ const unique=actions.slice(0,3);
+ el.innerHTML=`<h3 style="margin-bottom:4px">🧭 Smart daily action plan</h3><div class="small">Suggestions are based on foods logged for ${escapeHtml(formatTodayViewDate(d))} and your current targets. Use them as prompts, not strict rules.</div><div class="coachGrid">${unique.map(x=>`<div class="coachItem"><b>${x.icon} ${x.title}</b><div class="small" style="margin-top:4px">${x.text}</div>${x.foods?`<div class="small" style="margin-top:5px"><b>Ideas:</b> ${x.foods}</div>`:''}</div>`).join('')}</div>`;
+}
 function renderProteinHelper(t){
  const el=document.getElementById('proteinHelper'); if(!el)return;
  const rem=Math.max(0,S.p-t.p), calRem=Math.max(0,S.c-t.c);
@@ -1099,7 +1119,7 @@ function renderToday(){
  setProgressBar(pb,t.p,S.p,'goal');setProgressBar(cb,t.c,S.c,'limit');
  fat.textContent=t.f.toFixed(1)+" g";carb.textContent=t.carb.toFixed(1)+" g";fib.textContent=t.fiber.toFixed(1)+" g";items.textContent=a.length;
  setProgressBar(fatBar,t.f,Math.max(S.f,1),'limit');setProgressBar(fibBar,t.fiber,Math.max(S.fi,1),'goal');setProgressBar(carbBar,t.carb,Math.max(S.ch,1),'limit');
- renderDailyQuickDashboard(d); renderProteinStreak(); renderAchievements(); renderTodayFocus(t); renderProteinHelper(t); renderRedFlagFoods(a,t,d);
+ renderDailyQuickDashboard(d); renderProteinStreak(); renderAchievements(); renderTodayFocus(t); renderDailyCoach(a,t,d); renderProteinHelper(t); renderRedFlagFoods(a,t,d);
  fatTargetText.textContent="of "+S.f+" g target";carbTargetText.textContent="of "+S.ch+" g target";fibTargetText.textContent="of "+S.fi+" g target"; renderInsight(t);
  const cats=['Breakfast / Mid-Morning','Lunch','Evening Snack','Dinner'];
  const itemHtml=(i)=>{const x=a[i]||{},p=Number(x.p)||0,q=x.q??'',u=x.unit||'g';return `<div class=row><div><b>${x.name||'Food'}</b><div class=small>${q} ${u==='g'?'g':u==='ml'?'ml':u}</div></div><div><span class=protein>${p.toFixed(1)}g P</span> <button class=secondary onclick='modifyToday(${i},"${d}")'>Modify</button> <button class=danger onclick='delToday(${i},"${d}")'>×</button></div></div>`};
@@ -1582,7 +1602,7 @@ function saveHabitConfig(){ensureHabitData();const get=(id,min,max)=>Math.max(mi
 // PWA update helper: register the versioned service worker and let a new worker take over immediately.
 (function setupPwaUpdates(){
   if(!('serviceWorker' in navigator)) return;
-  const SW_VERSION='v67';
+  const SW_VERSION='v68';
   let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
     if(reloaded) return;
